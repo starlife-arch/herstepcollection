@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="HerStep Collection — premium ladies' footwear in Juja Town." />
+    <meta name="theme-color" content="#10233f" />
+    <title>HerStep Collection | Step Into Your Style.</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="HerStep Collection home">HERSTEP <span>COLLECTION</span></a>
+      <nav aria-label="Primary navigation">
+        <a href="#shop">Shop</a><a href="#about">Our store</a><a href="#support">Support</a>
+      </nav>
+      <button class="button button-secondary" id="account-trigger" type="button">Sign in</button>
+    </header>
+
+    <main id="main-content">
+      <section class="hero" aria-labelledby="hero-title">
+        <div>
+          <p class="eyebrow">Juja Town · Ladies’ footwear</p>
+          <h1 id="hero-title">Step into your style.</h1>
+          <p class="hero-copy">A considered collection of shoes selected for everyday confidence, special occasions and every step in between.</p>
+          <a class="button" href="#shop">Explore the collection</a>
+        </div>
+        <aside class="hero-panel" aria-label="Store information">
+          <p class="eyebrow">Visit our store</p>
+          <p>Jerry House, near Juja Posta<br />Outside Shop No. 12</p>
+          <a href="tel:+254799021089">+254 799 021 089</a>
+        </aside>
+      </section>
+
+      <section class="catalogue-placeholder" id="shop" aria-labelledby="catalogue-title">
+        <p class="eyebrow">Coming next</p>
+        <h2 id="catalogue-title">A catalogue built around the right fit.</h2>
+        <p>Product discovery, size-aware availability and secure checkout are being introduced in the next delivery phase.</p>
+      </section>
+
+      <section class="trust-grid" aria-label="HerStep service commitments">
+        <article><h2>Secure account</h2><p>Create a private customer account to manage your orders and support requests.</p></article>
+        <article><h2>Order clarity</h2><p>Payments and delivery updates will always be tracked separately and clearly.</p></article>
+        <article><h2>Real support</h2><p>Reach our team on WhatsApp at +254 106 624 924 or visit our Juja store.</p></article>
+      </section>
+    </main>
+
+    <footer id="about">
+      <span>© <span id="year"></span> HerStep Collection</span>
+      <span>Step Into Your Style.</span>
+      <a id="support" href="mailto:herstepcollection@gmail.com">herstepcollection@gmail.com</a>
+    </footer>
+
+    <dialog class="auth-dialog" id="auth-dialog" aria-labelledby="auth-title">
+      <button class="dialog-close" id="auth-close" type="button" aria-label="Close account dialog">×</button>
+      <section id="auth-loading"><p class="eyebrow">Account</p><h2 id="auth-title">Preparing secure sign in</h2><p>Connecting to the HerStep account service.</p></section>
+      <section id="auth-content" hidden>
+        <p class="eyebrow">Your account</p><h2 id="auth-heading">Welcome back</h2>
+        <form id="auth-form" novalidate>
+          <label id="name-field" hidden>Full name<input id="auth-name" name="name" autocomplete="name" maxlength="100" /></label>
+          <label>Email address<input id="auth-email" name="email" type="email" autocomplete="email" required /></label>
+          <label>Password<input id="auth-password" name="password" type="password" autocomplete="current-password" minlength="8" required /></label>
+          <p class="form-message" id="auth-message" role="alert" aria-live="polite"></p>
+          <button class="button" id="auth-submit" type="submit">Sign in</button>
+        </form>
+        <button class="text-button" id="auth-mode" type="button">New to HerStep? Create an account</button>
+      </section>
+      <section id="account-content" hidden><p class="eyebrow">Signed in</p><h2 id="account-name">Your HerStep account</h2><p id="account-email"></p><button class="button button-secondary" id="sign-out" type="button">Sign out</button></section>
+    </dialog>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

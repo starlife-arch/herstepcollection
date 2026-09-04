@@ -1,0 +1,18 @@
+{
+  "name": "herstep-collection",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HerStep Collection secure e-commerce platform",
+  "type": "module",
+  "scripts": {
+    "check": "node --check app.js && node --check api/firebase-config.js && node --check api/auth/sync-profile.js && node --check api/_lib/firebase-admin.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "firebase": "^11.0.2",
+    "firebase-admin": "^13.0.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

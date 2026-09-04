@@ -1,3 +1,5 @@
+import './catalogue.js';
+
 const dialog = document.querySelector('#auth-dialog');
 const trigger = document.querySelector('#account-trigger');
 const closeButton = document.querySelector('#auth-close');

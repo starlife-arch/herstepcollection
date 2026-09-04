@@ -5,7 +5,7 @@
   "description": "HerStep Collection secure e-commerce platform",
   "type": "module",
   "scripts": {
-    "check": "node --check app.js && node --check api/firebase-config.js && node --check api/auth/sync-profile.js && node --check api/_lib/firebase-admin.js",
+    "check": "node --check app.js && node --check catalogue.js && node --check product-api.js && find api -name '*.js' -print0 | xargs -0 -n1 node --check",
     "test": "node --test"
   },
   "dependencies": {

@@ -33,3 +33,14 @@ export async function requireUser(request) {
     throw error;
   }
 }
+
+export async function requireAdmin(request) {
+  const user = await requireUser(request);
+  const profile = await adminDb.collection('users').doc(user.uid).get();
+  if (!profile.exists || !['ADMIN', 'SUPER_ADMIN'].includes(profile.data().role)) {
+    const error = new Error('Administrator access is required.');
+    error.statusCode = 403;
+    throw error;
+  }
+  return { user, profile: profile.data() };
+}

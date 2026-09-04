@@ -20,12 +20,13 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // The catalogue is public, while product mutations require a trusted admin.
+    // Catalogue reads are public. All writes go through token-verified Vercel APIs
+    // so that price, inventory, media, and audit validation cannot be bypassed.
     match /products/{productId} {
       allow read: if resource.data.status == 'ACTIVE' || isAdmin();
-      allow write: if isAdmin();
+      allow write: if false;
     }
-    match /categories/{categoryId} { allow read: if true; allow write: if isAdmin(); }
+    match /categories/{categoryId} { allow read: if true; allow write: if false; }
     match /settings/{settingId} { allow read, write: if isAdmin(); }
 
     // Financial, order, inventory, promotion, and audit documents are server-managed.

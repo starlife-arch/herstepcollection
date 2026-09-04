@@ -33,10 +33,19 @@
         </aside>
       </section>
 
-      <section class="catalogue-placeholder" id="shop" aria-labelledby="catalogue-title">
-        <p class="eyebrow">Coming next</p>
-        <h2 id="catalogue-title">A catalogue built around the right fit.</h2>
-        <p>Product discovery, size-aware availability and secure checkout are being introduced in the next delivery phase.</p>
+      <section class="catalogue" id="shop" aria-labelledby="catalogue-title">
+        <div class="section-heading">
+          <div><p class="eyebrow">The collection</p><h2 id="catalogue-title">Find your next pair.</h2></div>
+          <p>Every style is shown with its live size availability. Inventory is confirmed again when ordering opens.</p>
+        </div>
+        <form class="catalogue-filters" id="catalogue-filters" role="search">
+          <label>Search collection<input id="product-search" type="search" placeholder="Style, category or SKU" autocomplete="off" /></label>
+          <label>Category<select id="category-filter"><option value="">All categories</option></select></label>
+          <label>Size<select id="size-filter"><option value="">All sizes</option><option>35</option><option>36</option><option>37</option><option>38</option><option>39</option><option>40</option><option>41</option><option>42</option></select></label>
+          <label>Availability<select id="availability-filter"><option value="">All availability</option><option value="in-stock">In stock</option><option value="sold-out">Sold out</option></select></label>
+        </form>
+        <p class="catalogue-result" id="catalogue-result" aria-live="polite">Loading the collection.</p>
+        <div class="product-grid" id="product-grid" aria-live="polite" aria-busy="true"></div>
       </section>
 
       <section class="trust-grid" aria-label="HerStep service commitments">
@@ -68,6 +77,7 @@
       </section>
       <section id="account-content" hidden><p class="eyebrow">Signed in</p><h2 id="account-name">Your HerStep account</h2><p id="account-email"></p><button class="button button-secondary" id="sign-out" type="button">Sign out</button></section>
     </dialog>
+    <dialog class="product-dialog" id="product-dialog" aria-labelledby="product-dialog-title"></dialog>
     <script type="module" src="app.js"></script>
   </body>
 </html>

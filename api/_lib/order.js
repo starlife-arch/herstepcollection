@@ -35,3 +35,10 @@ export function validateCart(cart) {
 }
 
 export function orderId(year, sequence) { return `HS-${year}-${String(sequence).padStart(6, '0')}`; }
+
+export function validateOrderPromotion(input) {
+  const code = input?.promoCode;
+  if (code == null || code === '') return null;
+  if (typeof code !== 'string' || !/^[A-Za-z0-9_-]{3,40}$/.test(code.trim())) throw clientError('Provide a valid promo code.');
+  return code.trim().toUpperCase();
+}

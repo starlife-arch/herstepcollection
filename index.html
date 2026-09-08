@@ -13,7 +13,7 @@
     <header class="site-header">
       <a class="brand" href="/" aria-label="HerStep Collection home">HERSTEP <span>COLLECTION</span></a>
       <nav aria-label="Primary navigation">
-        <a href="#shop">Shop</a><button class="nav-cart" id="cart-trigger" type="button">Cart <span id="cart-count">0</span></button><a href="#about">Our store</a><a href="#support">Support</a>
+        <a href="#shop">Shop</a><button class="nav-cart" id="cart-trigger" type="button">Cart <span id="cart-count">0</span></button><a href="#about">Our store</a><button class="nav-link-button" id="support-trigger" type="button">Support</button>
       </nav>
       <button class="button button-secondary" id="account-trigger" type="button">Sign in</button>
     </header>
@@ -81,6 +81,7 @@
     <dialog class="cart-dialog" id="cart-dialog" aria-labelledby="cart-title"><button class="dialog-close" type="button" data-close-cart aria-label="Close cart">×</button><p class="eyebrow">Your selection</p><h2 id="cart-title">Shopping cart</h2><div id="cart-lines"></div><p class="cart-subtotal" id="cart-subtotal"></p><button class="button" id="checkout-trigger" type="button">Proceed to checkout</button></dialog>
     <dialog class="checkout-dialog" id="checkout-dialog" aria-labelledby="checkout-title"><button class="dialog-close" type="button" data-close-checkout aria-label="Close checkout">×</button><p class="eyebrow">Secure order request</p><h2 id="checkout-title">Checkout</h2><div id="checkout-content"></div></dialog>
     <dialog class="dashboard-dialog" id="dashboard-dialog" aria-labelledby="dashboard-title"><button class="dialog-close" id="dashboard-close" type="button" aria-label="Close dashboard">×</button><p class="eyebrow">Customer dashboard</p><h2 id="dashboard-title">Your HerStep activity</h2><div id="dashboard-content" aria-live="polite">Loading your account.</div></dialog>
+    <dialog class="support-dialog" id="support-dialog" aria-labelledby="support-title"><button class="dialog-close" id="support-close" type="button" aria-label="Close support">×</button><p class="eyebrow">Customer support</p><h2 id="support-title">Support requests</h2><div id="support-content" aria-live="polite">Loading support.</div></dialog>
     <script type="module" src="app.js"></script>
   </body>
 </html>

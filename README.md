@@ -4,7 +4,7 @@ Secure, mobile-first e-commerce platform for HerStep Collection, built with stat
 
 ## Delivery status
 
-This delivery establishes the platform foundation through Phase 8: a premium responsive entry page, Firebase email/password account flow, secure catalogue/checkout/PrintPay payments, tracking, notifications, real-time support, customer requests, promotions, and server-validated promo codes.
+This delivery establishes the platform foundation through Phase 9: a premium responsive entry page, Firebase email/password account flow, secure catalogue/checkout/PrintPay payments, tracking, notifications, real-time support, customer requests, promotions, promo codes, and an administrator operations dashboard.
 
 ## Architecture and data model
 
@@ -56,6 +56,10 @@ Customers may create server-authorized discount or bulk-order requests. Administ
 
 Checkout accepts a promo *code* only, never a client discount or total. The order transaction reloads the promo-code document, verifies its window, minimum order value, product/category applicability, total usage and per-customer usage, calculates the discount from server-priced items, and atomically increments both counters before writing the price snapshot on the order.
 
+## Administrator dashboard
+
+`/admin.html` is a separate, authenticated operations view. Its server-only dashboard endpoint requires `requireAdmin` and reads live Firestore aggregates for orders, payments, support, customer-request queues, promotions, and promo-code usage. Admin order transitions and request decisions reuse the existing verified endpoints instead of duplicating state-change logic.
+
 ## Integration contract and required configuration
 
 Copy `.env.example` into the Vercel project settings and supply the Firebase Web config and Firebase Admin service-account fields. `FIREBASE_ADMIN_PRIVATE_KEY` must preserve newlines (the server supports escaped `\\n`). The Cloudinary values enable the authenticated product-media signing endpoint. Configure `PRINTPAY_API_KEY` server-side in Vercel; `PRINTPAY_API_BASE_URL` defaults to the documented API URL.
@@ -76,5 +80,5 @@ firebase deploy --only firestore:rules,firestore:indexes
 6. Customer dashboard.
 7. **Complete:** real-time support tickets and chat.
 8. **Complete:** requests, promotions and server-validated promo codes.
-9. Role-gated admin dashboard.
+9. **Complete:** role-gated admin dashboard.
 10. Analytics, audit coverage, SEO/performance, final security and mobile review.

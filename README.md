@@ -4,7 +4,7 @@ Secure, mobile-first e-commerce platform for HerStep Collection, built with stat
 
 ## Delivery status
 
-This delivery establishes the platform foundation through Phase 3: a premium responsive entry page, Firebase email/password account flow, secure server-side profile provisioning, product catalogue, local cart, authenticated checkout, and server-authoritative order creation. M-Pesa payments and support remain unimplemented.
+This delivery establishes the platform foundation through Phase 4: a premium responsive entry page, Firebase email/password account flow, secure server-side profile provisioning, product catalogue, local cart, authenticated checkout, server-authoritative order creation, and provider-independent payment records, callbacks, receipts, and customer payment UI. Support remains unimplemented.
 
 ## Architecture and data model
 
@@ -30,9 +30,15 @@ Planned top-level Firestore collections are: `users`, `products`, `categories`, 
 - Upcoming order creation will use a server-side Firestore transaction to reprice items, validate promotions and size stock, and reserve inventory atomically.
 - The later M-Pesa callback will be verified server-side and idempotent. Browser payment state will never be treated as payment confirmation.
 
+## Payment integration boundary
+
+Phase 4 intentionally does **not** invent an M-Pesa provider request, authentication method, callback payload, success code, or webhook signature. `api/_lib/mpesa-provider.js` is the only provider boundary and fails closed until the selected provider supplies its API and webhook documentation. A real adapter must expose `initiateStk({ paymentId, orderId, amount, phone, currency })` and `verifyCallback(request)`. The latter must authenticate the raw provider request and return normalized, verified fields only: `providerReference`, `status`, integer `amount`, optional `transactionReference`, optional `failureReason`, and optional unique `eventId`.
+
+The server creates payments from trusted order totals, persists provider references, verifies callbacks before applying them, and processes callbacks in Firestore transactions. Browser code cannot supply payment status, amount, transaction references, receipt numbers, or provider data.
+
 ## Integration contract and required configuration
 
-Copy `.env.example` into the Vercel project settings and supply the Firebase Web config and Firebase Admin service-account fields. `FIREBASE_ADMIN_PRIVATE_KEY` must preserve newlines (the server supports escaped `\\n`). The Cloudinary values enable the authenticated product-media signing endpoint; no M-Pesa/payment endpoint exists yet.
+Copy `.env.example` into the Vercel project settings and supply the Firebase Web config and Firebase Admin service-account fields. `FIREBASE_ADMIN_PRIVATE_KEY` must preserve newlines (the server supports escaped `\\n`). The Cloudinary values enable the authenticated product-media signing endpoint. M-Pesa requires the provider-specific adapter/documentation described above plus the configured server-only credentials and webhook secret.
 
 Deploy Firestore rules and indexes with the Firebase CLI after selecting the correct Firebase project:
 

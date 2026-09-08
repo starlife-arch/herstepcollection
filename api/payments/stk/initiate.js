@@ -12,7 +12,9 @@ export function createInitiateHandler({ db = adminDb, getProvider = getMpesaProv
       const input = validatePaymentInitiation(request.body);
       const provider = getProvider();
       const result = await createPaymentAttempt({ db, customerId: user.uid, ...input });
-      if (!result.existing) {
+      // A network/provider failure can leave a local pending attempt without a checkout ID.
+      // Reuse that attempt on retry, but never issue another STK push once PrintPay returned one.
+      if (!result.payment.providerReference) {
         const initiated = await provider.initiateStk({ paymentId: result.payment.paymentId, orderId: result.payment.orderId, amount: result.payment.amount, phone: result.payment.phone, currency: result.payment.currency });
         await attachProviderReference({ db, paymentId: result.payment.paymentId, providerReference: initiated.providerReference });
         result.payment.providerReference = initiated.providerReference;

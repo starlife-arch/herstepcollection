@@ -32,13 +32,13 @@ Planned top-level Firestore collections are: `users`, `products`, `categories`, 
 
 ## Payment integration boundary
 
-Phase 4 intentionally does **not** invent an M-Pesa provider request, authentication method, callback payload, success code, or webhook signature. `api/_lib/mpesa-provider.js` is the only provider boundary and fails closed until the selected provider supplies its API and webhook documentation. A real adapter must expose `initiateStk({ paymentId, orderId, amount, phone, currency })` and `verifyCallback(request)`. The latter must authenticate the raw provider request and return normalized, verified fields only: `providerReference`, `status`, integer `amount`, optional `transactionReference`, optional `failureReason`, and optional unique `eventId`.
+Phase 4 integrates PrintPay's documented form-encoded `POST /stk_push` endpoint with the server-only `PRINTPAY_API_KEY`. It stores PrintPay's `checkout_id`, maps the documented callback result codes, and uses PrintPay's `GET /stk_push?check_status={checkout_id}` endpoint to independently confirm every successful callback before marking a payment `PAID`. PrintPay does not document a webhook signature scheme, so none is invented; success is confirmed through the documented status endpoint.
 
 The server creates payments from trusted order totals, persists provider references, verifies callbacks before applying them, and processes callbacks in Firestore transactions. Browser code cannot supply payment status, amount, transaction references, receipt numbers, or provider data.
 
 ## Integration contract and required configuration
 
-Copy `.env.example` into the Vercel project settings and supply the Firebase Web config and Firebase Admin service-account fields. `FIREBASE_ADMIN_PRIVATE_KEY` must preserve newlines (the server supports escaped `\\n`). The Cloudinary values enable the authenticated product-media signing endpoint. M-Pesa requires the provider-specific adapter/documentation described above plus the configured server-only credentials and webhook secret.
+Copy `.env.example` into the Vercel project settings and supply the Firebase Web config and Firebase Admin service-account fields. `FIREBASE_ADMIN_PRIVATE_KEY` must preserve newlines (the server supports escaped `\\n`). The Cloudinary values enable the authenticated product-media signing endpoint. Configure `PRINTPAY_API_KEY` server-side in Vercel; `PRINTPAY_API_BASE_URL` defaults to the documented API URL.
 
 Deploy Firestore rules and indexes with the Firebase CLI after selecting the correct Firebase project:
 

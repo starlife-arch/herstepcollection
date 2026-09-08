@@ -1,6 +1,7 @@
 import './catalogue.js';
 import './cart.js';
 import './dashboard.js';
+import './support.js';
 
 const dialog = document.querySelector('#auth-dialog');
 const trigger = document.querySelector('#account-trigger');

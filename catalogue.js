@@ -72,12 +72,18 @@ async function initialiseCatalogue() {
     const [categoryData, productData] = await Promise.all([getCategories(), getProducts()]);
     categories = categoryData.categories;
     products = productData.products;
+    updateProductSchema(products);
     filters.category.insertAdjacentHTML('beforeend', categories.map((category) => `<option value="${escapeHtml(category.id)}">${escapeHtml(category.name)}</option>`).join(''));
     render();
   } catch (error) {
     result.textContent = 'The collection could not be loaded.';
     grid.innerHTML = `<div class="catalogue-empty"><h3>Collection unavailable</h3><p>${escapeHtml(error.message)}</p></div>`;
   } finally { grid.setAttribute('aria-busy', 'false'); }
+}
+
+function updateProductSchema(items) {
+  const schema = document.querySelector('#catalogue-schema'); if (!schema) return;
+  schema.textContent = JSON.stringify({ '@context': 'https://schema.org', '@graph': items.slice(0, 50).map((product) => ({ '@type': 'Product', name: product.name, sku: product.sku, image: product.images?.map((image) => image.url) || [], offers: { '@type': 'Offer', priceCurrency: 'KES', price: product.salePrice ?? product.price, availability: product.stockQuantity > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock' } })) });
 }
 
 initialiseCatalogue();

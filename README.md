@@ -4,7 +4,7 @@ Secure, mobile-first e-commerce platform for HerStep Collection, built with stat
 
 ## Delivery status
 
-This delivery establishes the platform foundation through Phase 6: a premium responsive entry page, Firebase email/password account flow, secure catalogue/checkout/PrintPay payments, tracking, notifications, and a read-focused authenticated customer dashboard. Support remains unimplemented.
+This delivery completes all 10 phases: a premium responsive entry page, Firebase email/password account flow, secure catalogue/checkout/PrintPay payments, tracking, notifications, real-time support, customer requests, promotions, promo codes, an administrator operations dashboard, analytics, audit logs, and production hardening.
 
 ## Architecture and data model
 
@@ -40,9 +40,31 @@ The server creates payments from trusted order totals, persists provider referen
 
 `GET /api/orders/track` returns only the authenticated customer’s order, payment state, line-item snapshot, and server-managed timeline. `PATCH /api/orders/status` is administrator-only and records each permitted order transition in `orderStatusHistory`. Payment updates and order transitions atomically create one internal customer notification per event. No email, SMS, or push delivery provider is configured in this project, so no external delivery is claimed.
 
+## Hardening, audit, analytics, and discoverability
+
+Administrator mutations now append trusted Firestore `auditLogs` transaction records, including the administrator, action, target, prior state, next state, and timestamp. Audit logs are admin-read-only and deny all client writes. `GET /api/admin/analytics` computes recent order/revenue, popular-size, promo-code-use, payment-attempt, and support-resolution metrics server-side from Firestore.
+
+Authenticated write paths for orders and new support tickets have a process-level rate limit as a defensive layer; all financial totals, promotion results, roles, and state transitions remain server-derived. Public promotion reads are short-cacheable. The storefront now provides Open Graph metadata, JSON-LD catalogue product metadata, `robots.txt`, and `sitemap.xml`.
+
 ## Customer dashboard
 
 `GET /api/dashboard` aggregates only the authenticated customer’s profile delivery data, recent order summaries, payment summaries, and notifications. `GET /api/notifications` is customer-scoped and `PATCH /api/notifications` marks only the owner’s notification read; repeat read requests are idempotent.
+
+## Support tickets and real-time chat
+
+`POST /api/support` creates a customer-owned ticket and its initial message in a Firestore transaction. Tickets receive a server-managed `SUP-000001` style identifier and may only link to an order owned by that customer. `POST /api/support/messages` verifies ownership (or the trusted server-side administrator role) before appending a message beneath `supportTickets/{ticketId}/messages/{messageId}`. The client supplies an idempotency key for each message, so retrying an admin reply cannot produce a duplicate message or notification.
+
+Customers and administrators read message threads with Firestore `onSnapshot` listeners, while all writes remain behind verified API endpoints. Customer ticket access is constrained to `customerId`; the administrator list and status endpoint rely on `requireAdmin`, which reads the trusted `users/{uid}` role document. Statuses are `OPEN`, `IN_PROGRESS`, `RESOLVED`, and `CLOSED`; transitions are server-guarded and recorded in an append-only ticket history subcollection. Admin replies create one deterministic customer notification, and customer messages set `hasUnreadAdminMessages` on the ticket for the admin support queue.
+
+## Requests, promotions, and promo codes
+
+Customers may create server-authorized discount or bulk-order requests. Administrators alone can approve or reject them; reviews use Firestore transactions, append immutable request-history records, and create deterministic customer notifications. Promotional campaigns and promo codes are administrator-authored only. Customer promotion reads return only active campaigns within their date window.
+
+Checkout accepts a promo *code* only, never a client discount or total. The order transaction reloads the promo-code document, verifies its window, minimum order value, product/category applicability, total usage and per-customer usage, calculates the discount from server-priced items, and atomically increments both counters before writing the price snapshot on the order.
+
+## Administrator dashboard
+
+`/admin.html` is a separate, authenticated operations view. Its server-only dashboard endpoint requires `requireAdmin` and reads live Firestore aggregates for orders, payments, support, customer-request queues, promotions, and promo-code usage. Admin order transitions and request decisions reuse the existing verified endpoints instead of duplicating state-change logic.
 
 ## Integration contract and required configuration
 
@@ -62,7 +84,7 @@ firebase deploy --only firestore:rules,firestore:indexes
 4. M-Pesa STK initiation, signed webhook processing, payment records and receipts.
 5. Tracking, status history, notifications.
 6. Customer dashboard.
-7. Real-time support tickets and chat.
-8. Requests, promotions and server-validated promo codes.
-9. Role-gated admin dashboard.
-10. Analytics, audit coverage, SEO/performance, final security and mobile review.
+7. **Complete:** real-time support tickets and chat.
+8. **Complete:** requests, promotions and server-validated promo codes.
+9. **Complete:** role-gated admin dashboard.
+10. **Complete:** analytics, audit coverage, SEO/performance, final security and mobile review.

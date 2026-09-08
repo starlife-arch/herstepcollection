@@ -51,8 +51,10 @@ export function createPrintPayProvider({ apiKey = process.env.PRINTPAY_API_KEY, 
       const body = await request(`${apiBase}/stk_push?${new URLSearchParams({ check_status: id })}`, { method: 'GET', headers: { Accept: 'application/json' } }, fetchImpl);
       const status = callbackStatus({ status: body.status, resultCode: body.result_code });
       if (status === 'PENDING') return { providerReference: id, status: 'PENDING' };
-      if (status !== 'PAID') throw providerError('PrintPay returned an unknown payment status.');
-      return { providerReference: id, status: 'PAID', amount: amount(body.amount), transactionReference: typeof body.mpesa_receipt_number === 'string' ? body.mpesa_receipt_number.trim().slice(0, 180) : null, failureReason: null, eventId: `status:${id}:${body.mpesa_receipt_number || 'success'}` };
+      const paymentAmount = amount(body.amount);
+      const transactionReference = typeof body.mpesa_receipt_number === 'string' ? body.mpesa_receipt_number.trim().slice(0, 180) : null;
+      if (status === 'PAID') return { providerReference: id, status, amount: paymentAmount, transactionReference, failureReason: null, eventId: `status:${id}:${body.mpesa_receipt_number || 'success'}` };
+      return { providerReference: id, status, amount: paymentAmount, transactionReference, failureReason: 'PrintPay reported that the payment was not completed.', eventId: `status:${id}:${status}` };
     },
     async verifyCallback(request) {
       const body = request.body || {};

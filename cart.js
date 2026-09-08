@@ -36,8 +36,18 @@ async function submitOrder(event) {
 }
 
 function renderPayment(order) {
-  document.querySelector('#checkout-content').innerHTML = `<section class="payment-panel"><p class="eyebrow">Secure payment</p><h3>Complete your M-Pesa payment</h3><p>Order <strong>${escapeHtml(order.orderId)}</strong></p><p class="payment-total">Amount due <strong>${formatMoney(order.total)}</strong></p><p id="payment-state" class="payment-state">Your order is pending payment. Request an M-Pesa prompt when you are ready.</p><p class="form-message" id="payment-message" role="alert"></p><button class="button" id="payment-initiate" type="button">Pay with M-Pesa</button><div id="receipt-content"></div></section>`;
+  document.querySelector('#checkout-content').innerHTML = `<section class="payment-panel"><p class="eyebrow">Secure payment</p><h3>Complete your M-Pesa payment</h3><p>Order <strong>${escapeHtml(order.orderId)}</strong></p><p class="payment-total">Amount due <strong>${formatMoney(order.total)}</strong></p><p id="payment-state" class="payment-state">Your order is pending payment. Request an M-Pesa prompt when you are ready.</p><p class="form-message" id="payment-message" role="alert"></p><button class="button" id="payment-initiate" type="button">Pay with M-Pesa</button><button class="text-button" id="track-order" type="button">View order status</button><div id="tracking-content"></div><div id="receipt-content"></div></section>`;
   document.querySelector('#payment-initiate').addEventListener('click', () => initiatePayment(order.id));
+  document.querySelector('#track-order').addEventListener('click', () => renderTracking(order.id));
+}
+
+async function renderTracking(orderDocumentId) {
+  const target = document.querySelector('#tracking-content');
+  try {
+    const token = await user.getIdToken(); const response = await fetch(`/api/orders/track?orderDocumentId=${encodeURIComponent(orderDocumentId)}`, { headers: { Authorization: `Bearer ${token}` } }); const body = await response.json();
+    if (!response.ok) throw new Error(body.error || 'Order tracking is unavailable.'); const order = body.order;
+    target.innerHTML = `<section class="order-tracking"><h4>Order status</h4><p><strong>${escapeHtml(order.orderStatus)}</strong> · Payment ${escapeHtml(order.paymentStatus)}</p><ol>${order.history.map((entry) => `<li><strong>${escapeHtml(entry.eventType === 'PAYMENT_STATUS_CHANGED' ? `Payment ${entry.paymentStatus}` : entry.newStatus || 'Order placed')}</strong><span>${escapeHtml(entry.note || entry.source)}</span></li>`).join('')}</ol></section>`;
+  } catch (error) { document.querySelector('#payment-message').textContent = error.message; }
 }
 
 async function initiatePayment(orderDocumentId) {

@@ -1,6 +1,7 @@
 import { FieldValue } from 'firebase-admin/firestore';
 import { assertOrderCanBePaid, assertPaymentTransition, assertVerifiedPaymentAmount, paymentReceiptNumber, validateVerifiedCallback } from './payment.js';
 import { clientError } from './http.js';
+import { createNotification } from './notification.js';
 
 function timestamp(value) { return value?.toDate?.().toISOString() || null; }
 
@@ -58,6 +59,11 @@ export async function applyVerifiedCallback({ db, callback }) {
     transaction.update(paymentRef, updates);
     transaction.create(eventRef, { paymentId: payment.paymentId, orderDocumentId: payment.orderDocumentId, providerReference: verified.providerReference, eventId, status: verified.status, amount: verified.amount, transactionReference: verified.transactionReference, createdAt: FieldValue.serverTimestamp() });
     transaction.update(orderRef, { paymentStatus: verified.status, paymentId: payment.paymentId, paymentReference: verified.status === 'PAID' ? verified.transactionReference : null, updatedAt: FieldValue.serverTimestamp() });
+    const notification = verified.status === 'PAID'
+      ? ['Payment confirmed', `Your payment for order ${payment.orderId} has been confirmed.`]
+      : ['Payment update', `Your payment for order ${payment.orderId} is ${verified.status.toLowerCase()}.`];
+    transaction.create(db.collection('orderStatusHistory').doc(`${payment.orderDocumentId}-PAYMENT-${verified.status}`), { orderId: payment.orderId, orderDocumentId: payment.orderDocumentId, customerId: payment.customerId, eventType: 'PAYMENT_STATUS_CHANGED', previousStatus: null, newStatus: null, paymentStatus: verified.status, note: verified.failureReason, source: 'PRINTPAY', paymentId: payment.paymentId, createdAt: FieldValue.serverTimestamp() });
+    createNotification(transaction, db, { orderDocumentId: payment.orderDocumentId, customerId: payment.customerId, event: `PAYMENT_${verified.status}`, title: notification[0], body: notification[1] });
     return { duplicate: false, payment: { ...payment, ...updates, createdAt: timestamp(payment.createdAt) } };
   });
 }

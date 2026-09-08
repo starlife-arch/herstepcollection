@@ -75,11 +75,12 @@
         </form>
         <button class="text-button" id="auth-mode" type="button">New to HerStep? Create an account</button>
       </section>
-      <section id="account-content" hidden><p class="eyebrow">Signed in</p><h2 id="account-name">Your HerStep account</h2><p id="account-email"></p><button class="button button-secondary" id="sign-out" type="button">Sign out</button></section>
+      <section id="account-content" hidden><p class="eyebrow">Signed in</p><h2 id="account-name">Your HerStep account</h2><p id="account-email"></p><button class="button" id="dashboard-trigger" type="button">My dashboard</button><button class="button button-secondary" id="sign-out" type="button">Sign out</button></section>
     </dialog>
     <dialog class="product-dialog" id="product-dialog" aria-labelledby="product-dialog-title"></dialog>
     <dialog class="cart-dialog" id="cart-dialog" aria-labelledby="cart-title"><button class="dialog-close" type="button" data-close-cart aria-label="Close cart">×</button><p class="eyebrow">Your selection</p><h2 id="cart-title">Shopping cart</h2><div id="cart-lines"></div><p class="cart-subtotal" id="cart-subtotal"></p><button class="button" id="checkout-trigger" type="button">Proceed to checkout</button></dialog>
     <dialog class="checkout-dialog" id="checkout-dialog" aria-labelledby="checkout-title"><button class="dialog-close" type="button" data-close-checkout aria-label="Close checkout">×</button><p class="eyebrow">Secure order request</p><h2 id="checkout-title">Checkout</h2><div id="checkout-content"></div></dialog>
+    <dialog class="dashboard-dialog" id="dashboard-dialog" aria-labelledby="dashboard-title"><button class="dialog-close" id="dashboard-close" type="button" aria-label="Close dashboard">×</button><p class="eyebrow">Customer dashboard</p><h2 id="dashboard-title">Your HerStep activity</h2><div id="dashboard-content" aria-live="polite">Loading your account.</div></dialog>
     <script type="module" src="app.js"></script>
   </body>
 </html>

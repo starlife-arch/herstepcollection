@@ -32,6 +32,7 @@ test('guards support ticket status transitions and only permits admin updates in
   const { db, documents } = supportDb({ customerId: 'customer-1', ticketId: 'SUP-000001', status: 'OPEN' });
   await updateSupportTicketStatus({ db, ticketDocumentId: 'ticket-12345678', status: 'IN_PROGRESS', admin: { uid: 'admin-1', name: 'Ada' } });
   assert.equal(documents.get('supportTickets/ticket-12345678').status, 'IN_PROGRESS');
+  assert.equal([...documents.entries()].find(([path]) => path.startsWith('auditLogs/'))?.[1].action, 'SUPPORT_STATUS_CHANGED');
 });
 
 test('validates only server-supported ticket and message fields', () => {

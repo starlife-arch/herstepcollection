@@ -173,6 +173,7 @@ test('records server-authoritative order status history and an idempotent custom
   assert.equal(documents.get('orders/order-12345678').orderStatus, 'PROCESSING');
   assert.equal(documents.get('orderStatusHistory/order-12345678-PROCESSING').source, 'ADMIN');
   assert.equal(documents.get('notifications/order-12345678-ORDER_PROCESSING').customerId, 'customer-1');
+  assert.equal(documents.get('auditLogs/generated-4').action, 'ORDER_STATUS_CHANGED');
 });
 
 test('does not allow an unpaid order to begin processing', async () => {

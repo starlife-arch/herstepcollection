@@ -1,6 +1,7 @@
 import { FieldValue } from 'firebase-admin/firestore';
 import { clientError } from './http.js';
 import { createNotification } from './notification.js';
+import { createAuditLog } from './audit.js';
 
 const REQUEST_STATUSES = new Set(['PENDING', 'APPROVED', 'REJECTED']);
 function text(value, max) { return typeof value === 'string' ? value.trim().slice(0, max) : ''; }
@@ -40,6 +41,7 @@ export async function updateCustomerRequest({ db, collection, requestId, status,
     transaction.update(ref, { status, adminResponse: text(admin.response, 1000) || null, reviewedBy: admin.uid, reviewedAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() });
     transaction.create(ref.collection('history').doc(`PENDING-${status}`), { previousStatus: 'PENDING', newStatus: status, adminId: admin.uid, adminName: admin.name || null, note: text(admin.response, 1000) || null, createdAt: FieldValue.serverTimestamp() });
     createNotification(transaction, db, { orderDocumentId: requestId, customerId: request.customerId, event: `${request.type}_${status}`, title: `${request.type === 'DISCOUNT' ? 'Discount' : 'Bulk order'} request ${status.toLowerCase()}`, body: text(admin.response, 1000) || 'Your request has been reviewed.' });
+    createAuditLog(transaction, db, { admin, action: `${request.type}_REQUEST_${status}`, targetType: collection, targetId: requestId, previous: { status: request.status }, next: { status }, metadata: { response: text(admin.response, 1000) || null } });
     return { duplicate: false, request: { ...request, status } };
   });
 }

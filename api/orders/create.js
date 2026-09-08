@@ -3,11 +3,13 @@ import { adminDb, requireUser } from '../_lib/firebase-admin.js';
 import { clientError, methodNotAllowed, sendError } from '../_lib/http.js';
 import { orderId, validateCart, validateCheckout, validateOrderPromotion } from '../_lib/order.js';
 import { applyPromoCode } from '../_lib/promotion-service.js';
+import { enforceRateLimit } from '../_lib/rate-limit.js';
 
 export default async function handler(request, response) {
   if (request.method !== 'POST') return methodNotAllowed(response, 'POST');
   try {
     const user = await requireUser(request);
+    enforceRateLimit(`order:${user.uid}`, { limit: 5, windowMs: 60_000 });
     const cart = validateCart(request.body?.cart);
     const delivery = validateCheckout(request.body?.delivery || {});
     const promoCode = validateOrderPromotion(request.body);

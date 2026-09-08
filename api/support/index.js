@@ -2,11 +2,13 @@ import { adminDb, requireUser } from '../_lib/firebase-admin.js';
 import { methodNotAllowed, sendError, clientError } from '../_lib/http.js';
 import { createSupportTicket } from '../_lib/support-service.js';
 import { ticketResponse } from '../_lib/support.js';
+import { enforceRateLimit } from '../_lib/rate-limit.js';
 
 export default async function handler(request, response) {
   try {
     if (request.method === 'POST') {
       const user = await requireUser(request);
+      enforceRateLimit(`support-ticket:${user.uid}`, { limit: 5, windowMs: 60_000 });
       const result = await createSupportTicket({ db: adminDb, customerId: user.uid, input: request.body });
       return response.status(201).json({ ticket: ticketResponse(result.ticketDocumentId, result.ticket) });
     }

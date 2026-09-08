@@ -2,10 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildAdminDashboard } from '../api/_lib/admin-dashboard-service.js';
 import { createAdminDashboardHandler } from '../api/_lib/admin-dashboard-handler.js';
+import { buildAdminAnalytics } from '../api/_lib/analytics-service.js';
 
 function dashboardDb(records) {
   const docs = (name) => (records[name] || []).map(([id, data]) => ({ id, data: () => data }));
-  const query = (name, filters = []) => ({ where(field, operator, value) { return query(name, [...filters, [field, value]]); }, orderBy() { return this; }, limit() { return this; }, async get() { return { docs: docs(name).filter((doc) => filters.every(([field, value]) => doc.data()[field] === value)) }; }, count() { const total = docs(name).filter((doc) => filters.every(([field, value]) => doc.data()[field] === value)).length; return { get: async () => ({ data: () => ({ count: total }) }) }; } });
+  const matches = (doc, filters) => filters.every(([field, operator, value]) => operator === '>=' ? doc.data()[field]?.toDate?.() >= value : doc.data()[field] === value);
+  const query = (name, filters = []) => ({ where(field, operator, value) { return query(name, [...filters, [field, operator, value]]); }, orderBy() { return this; }, limit() { return this; }, async get() { return { docs: docs(name).filter((doc) => matches(doc, filters)) }; }, count() { const total = docs(name).filter((doc) => matches(doc, filters)).length; return { get: async () => ({ data: () => ({ count: total }) }) }; } });
   return { collection(name) { return query(name); } };
 }
 
@@ -26,4 +28,12 @@ test('rejects a non-admin from the new admin aggregation endpoint', async () => 
   const denied = Object.assign(new Error('Administrator access is required.'), { statusCode: 403 });
   const handler = createAdminDashboardHandler({ db: {}, requireAdministrator: async () => { throw denied; }, buildDashboard: async () => ({}) });
   await handler({ method: 'GET' }, response); assert.equal(response.statusCode, 403);
+});
+
+test('builds server-derived analytics from recent orders, promo codes, and resolved support tickets', async () => {
+  const date = (value) => ({ toDate: () => new Date(value) }); const db = dashboardDb({
+    orders: [['o1', { createdAt: date('2026-09-07T10:00:00Z'), paymentStatus: 'PAID', total: 1000, items: [{ size: '38', quantity: 2 }] }]], payments: [['p1', { createdAt: date('2026-09-07T10:00:00Z') }]], promoCodes: [['SAVE10', { usageCount: 3 }]], supportTickets: [['s1', { status: 'RESOLVED', createdAt: date('2026-09-07T08:00:00Z'), updatedAt: date('2026-09-07T10:00:00Z') }]]
+  });
+  const analytics = await buildAdminAnalytics({ db, now: new Date('2026-09-08T00:00:00Z') });
+  assert.equal(analytics.revenue.paid, 1000); assert.equal(analytics.revenue.averageOrderValue, 1000); assert.deepEqual(analytics.popularSizes, [{ size: '38', quantity: 2 }]); assert.deepEqual(analytics.promoCodeUses, [{ code: 'SAVE10', uses: 3 }]); assert.equal(analytics.support.averageResolutionHours, 2);
 });

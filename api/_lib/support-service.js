@@ -2,6 +2,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { clientError } from './http.js';
 import { assertTicketTransition, ticketId, validateMessageCreate, validateTicketCreate } from './support.js';
 import { createNotification } from './notification.js';
+import { createAuditLog } from './audit.js';
 
 async function getOwnedTicket(transaction, db, ticketDocumentId, actor) {
   const reference = db.collection('supportTickets').doc(ticketDocumentId); const snapshot = await transaction.get(reference);
@@ -58,6 +59,7 @@ export async function updateSupportTicketStatus({ db, ticketDocumentId, status, 
     transaction.update(reference, { status, updatedAt: FieldValue.serverTimestamp(), statusUpdatedBy: admin.uid, statusUpdatedAt: FieldValue.serverTimestamp() });
     transaction.create(reference.collection('history').doc(`${ticket.status}-${status}`), { previousStatus: ticket.status, newStatus: status, adminId: admin.uid, adminName: admin.name || null, createdAt: FieldValue.serverTimestamp() });
     if (status === 'CLOSED') createNotification(transaction, db, { orderDocumentId: ticketDocumentId, customerId: ticket.customerId, event: 'SUPPORT_CLOSED', title: 'Support ticket closed', body: `Support ticket ${ticket.ticketId} has been closed.` });
+    createAuditLog(transaction, db, { admin, action: 'SUPPORT_STATUS_CHANGED', targetType: 'SUPPORT_TICKET', targetId: ticketDocumentId, previous: { status: ticket.status }, next: { status } });
     return { duplicate: false, ticket: { ...ticket, status } };
   });
 }

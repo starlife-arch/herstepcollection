@@ -35,6 +35,10 @@
     { "collectionGroup": "supportTickets", "queryScope": "COLLECTION", "fields": [
       { "fieldPath": "status", "order": "ASCENDING" },
       { "fieldPath": "updatedAt", "order": "DESCENDING" }
+    ] },
+    { "collectionGroup": "promotions", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "active", "order": "ASCENDING" },
+      { "fieldPath": "startsAt", "order": "DESCENDING" }
     ] }
   ],
   "fieldOverrides": []

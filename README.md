@@ -4,7 +4,7 @@ Secure, mobile-first e-commerce platform for HerStep Collection, built with stat
 
 ## Delivery status
 
-This delivery establishes the platform foundation through Phase 7: a premium responsive entry page, Firebase email/password account flow, secure catalogue/checkout/PrintPay payments, tracking, notifications, customer dashboard, and authenticated real-time support tickets.
+This delivery establishes the platform foundation through Phase 8: a premium responsive entry page, Firebase email/password account flow, secure catalogue/checkout/PrintPay payments, tracking, notifications, real-time support, customer requests, promotions, and server-validated promo codes.
 
 ## Architecture and data model
 
@@ -50,6 +50,12 @@ The server creates payments from trusted order totals, persists provider referen
 
 Customers and administrators read message threads with Firestore `onSnapshot` listeners, while all writes remain behind verified API endpoints. Customer ticket access is constrained to `customerId`; the administrator list and status endpoint rely on `requireAdmin`, which reads the trusted `users/{uid}` role document. Statuses are `OPEN`, `IN_PROGRESS`, `RESOLVED`, and `CLOSED`; transitions are server-guarded and recorded in an append-only ticket history subcollection. Admin replies create one deterministic customer notification, and customer messages set `hasUnreadAdminMessages` on the ticket for the admin support queue.
 
+## Requests, promotions, and promo codes
+
+Customers may create server-authorized discount or bulk-order requests. Administrators alone can approve or reject them; reviews use Firestore transactions, append immutable request-history records, and create deterministic customer notifications. Promotional campaigns and promo codes are administrator-authored only. Customer promotion reads return only active campaigns within their date window.
+
+Checkout accepts a promo *code* only, never a client discount or total. The order transaction reloads the promo-code document, verifies its window, minimum order value, product/category applicability, total usage and per-customer usage, calculates the discount from server-priced items, and atomically increments both counters before writing the price snapshot on the order.
+
 ## Integration contract and required configuration
 
 Copy `.env.example` into the Vercel project settings and supply the Firebase Web config and Firebase Admin service-account fields. `FIREBASE_ADMIN_PRIVATE_KEY` must preserve newlines (the server supports escaped `\\n`). The Cloudinary values enable the authenticated product-media signing endpoint. Configure `PRINTPAY_API_KEY` server-side in Vercel; `PRINTPAY_API_BASE_URL` defaults to the documented API URL.
@@ -69,6 +75,6 @@ firebase deploy --only firestore:rules,firestore:indexes
 5. Tracking, status history, notifications.
 6. Customer dashboard.
 7. **Complete:** real-time support tickets and chat.
-8. Requests, promotions and server-validated promo codes.
+8. **Complete:** requests, promotions and server-validated promo codes.
 9. Role-gated admin dashboard.
 10. Analytics, audit coverage, SEO/performance, final security and mobile review.

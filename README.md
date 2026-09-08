@@ -4,7 +4,7 @@ Secure, mobile-first e-commerce platform for HerStep Collection, built with stat
 
 ## Delivery status
 
-This delivery establishes the platform foundation through Phase 3: a premium responsive entry page, Firebase email/password account flow, secure server-side profile provisioning, product catalogue, local cart, authenticated checkout, and server-authoritative order creation. M-Pesa payments and support remain unimplemented.
+This delivery establishes the platform foundation through Phase 6: a premium responsive entry page, Firebase email/password account flow, secure catalogue/checkout/PrintPay payments, tracking, notifications, and a read-focused authenticated customer dashboard. Support remains unimplemented.
 
 ## Architecture and data model
 
@@ -30,9 +30,23 @@ Planned top-level Firestore collections are: `users`, `products`, `categories`, 
 - Upcoming order creation will use a server-side Firestore transaction to reprice items, validate promotions and size stock, and reserve inventory atomically.
 - The later M-Pesa callback will be verified server-side and idempotent. Browser payment state will never be treated as payment confirmation.
 
+## Payment integration boundary
+
+Phase 4 integrates PrintPay's documented form-encoded `POST /stk_push` endpoint with the server-only `PRINTPAY_API_KEY`. It stores PrintPay's `checkout_id`, maps the documented callback result codes, and uses PrintPay's `GET /stk_push?check_status={checkout_id}` endpoint to independently confirm every successful callback before marking a payment `PAID`. PrintPay does not document a webhook signature scheme, so none is invented; success is confirmed through the documented status endpoint.
+
+The server creates payments from trusted order totals, persists provider references, verifies callbacks before applying them, and processes callbacks in Firestore transactions. Browser code cannot supply payment status, amount, transaction references, receipt numbers, or provider data.
+
+## Order tracking and notifications
+
+`GET /api/orders/track` returns only the authenticated customer’s order, payment state, line-item snapshot, and server-managed timeline. `PATCH /api/orders/status` is administrator-only and records each permitted order transition in `orderStatusHistory`. Payment updates and order transitions atomically create one internal customer notification per event. No email, SMS, or push delivery provider is configured in this project, so no external delivery is claimed.
+
+## Customer dashboard
+
+`GET /api/dashboard` aggregates only the authenticated customer’s profile delivery data, recent order summaries, payment summaries, and notifications. `GET /api/notifications` is customer-scoped and `PATCH /api/notifications` marks only the owner’s notification read; repeat read requests are idempotent.
+
 ## Integration contract and required configuration
 
-Copy `.env.example` into the Vercel project settings and supply the Firebase Web config and Firebase Admin service-account fields. `FIREBASE_ADMIN_PRIVATE_KEY` must preserve newlines (the server supports escaped `\\n`). The Cloudinary values enable the authenticated product-media signing endpoint; no M-Pesa/payment endpoint exists yet.
+Copy `.env.example` into the Vercel project settings and supply the Firebase Web config and Firebase Admin service-account fields. `FIREBASE_ADMIN_PRIVATE_KEY` must preserve newlines (the server supports escaped `\\n`). The Cloudinary values enable the authenticated product-media signing endpoint. Configure `PRINTPAY_API_KEY` server-side in Vercel; `PRINTPAY_API_BASE_URL` defaults to the documented API URL.
 
 Deploy Firestore rules and indexes with the Firebase CLI after selecting the correct Firebase project:
 

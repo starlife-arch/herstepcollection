@@ -48,9 +48,9 @@ function render() {
 function openDetail(product) {
   const isSoldOut = product.stockQuantity === 0;
   const images = product.images.map((image, index) => `<img class="${index ? 'product-detail-extra' : 'product-detail-main'}" src="${escapeHtml(image.url)}" alt="${escapeHtml(image.alt || product.name)}" />`).join('');
-  const sizes = product.inventory.map((item) => `<span class="size-option ${item.quantity ? '' : 'unavailable'}" aria-label="Size ${item.size}: ${item.quantity ? 'available' : 'out of stock'}">${item.size}</span>`).join('');
+  const sizes = product.inventory.map((item) => `<option value="${item.size}" ${item.quantity ? '' : 'disabled'}>${item.size}${item.quantity ? '' : ' — unavailable'}</option>`).join('');
   const price = product.salePrice === null ? formatMoney(product.price) : `${formatMoney(product.salePrice)} <s>${formatMoney(product.price)}</s>`;
-  dialog.innerHTML = `<button class="dialog-close" type="button" data-close-product aria-label="Close product details">×</button><div class="product-detail-gallery">${images}</div><section class="product-detail-copy"><p class="eyebrow">${escapeHtml(categoryName(product.categoryId))}</p><h2 id="product-dialog-title">${escapeHtml(product.name)}</h2><p class="product-price product-detail-price">${price}</p><p>${escapeHtml(product.description)}</p><dl><div><dt>SKU</dt><dd>${escapeHtml(product.sku)}</dd></div><div><dt>Availability</dt><dd>${isSoldOut ? 'Sold out' : `${product.stockQuantity} pairs across available sizes`}</dd></div></dl><p class="size-heading">Choose your size</p><div class="size-list size-options">${sizes}</div><p class="catalogue-note">Ordering opens in the next phase. Size and stock are displayed for reference and will be verified securely before purchase.</p></section>`;
+  dialog.innerHTML = `<button class="dialog-close" type="button" data-close-product aria-label="Close product details">×</button><div class="product-detail-gallery">${images}</div><section class="product-detail-copy"><p class="eyebrow">${escapeHtml(categoryName(product.categoryId))}</p><h2 id="product-dialog-title">${escapeHtml(product.name)}</h2><p class="product-price product-detail-price">${price}</p><p>${escapeHtml(product.description)}</p><dl><div><dt>SKU</dt><dd>${escapeHtml(product.sku)}</dd></div><div><dt>Availability</dt><dd>${isSoldOut ? 'Sold out' : `${product.stockQuantity} pairs across available sizes`}</dd></div></dl><form class="add-cart-form" data-product-id="${escapeHtml(product.id)}"><label>Choose your size<select name="size" ${isSoldOut ? 'disabled' : ''}>${sizes}</select></label><label>Quantity<input name="quantity" type="number" min="1" max="10" value="1" ${isSoldOut ? 'disabled' : ''} /></label><button class="button" type="submit" ${isSoldOut ? 'disabled' : ''}>${isSoldOut ? 'Sold out' : 'Add to cart'}</button></form><p class="catalogue-note">Prices and stock are verified securely when you create an order.</p></section>`;
   dialog.showModal();
 }
 
@@ -59,6 +59,12 @@ grid.addEventListener('click', (event) => {
   if (id) openDetail(products.find((product) => product.id === id));
 });
 dialog.addEventListener('click', (event) => { if (event.target.closest('[data-close-product]')) dialog.close(); });
+dialog.addEventListener('submit', (event) => {
+  if (!event.target.matches('.add-cart-form')) return;
+  event.preventDefault(); const product = products.find((item) => item.id === event.target.dataset.productId); const data = new FormData(event.target); const size = data.get('size'); const quantity = Number(data.get('quantity')); const stock = product.inventory.find((item) => item.size === size);
+  if (!stock || !Number.isInteger(quantity) || quantity < 1 || quantity > 10 || quantity > stock.quantity) return;
+  window.dispatchEvent(new CustomEvent('herstep-add-cart', { detail: { productId: product.id, size, quantity, name: product.name, price: product.salePrice ?? product.price, image: product.images[0].url } })); dialog.close();
+});
 Object.values(filters).forEach((filter) => filter.addEventListener('input', render));
 
 async function initialiseCatalogue() {

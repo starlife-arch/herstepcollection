@@ -1,4 +1,5 @@
 import './catalogue.js';
+import './cart.js';
 
 const dialog = document.querySelector('#auth-dialog');
 const trigger = document.querySelector('#account-trigger');
@@ -48,6 +49,7 @@ async function initialiseAuth() {
 }
 
 async function renderAccount(user) {
+  window.dispatchEvent(new CustomEvent('herstep-auth-state', { detail: { user, authApi } }));
   if (!user) { trigger.textContent = 'Sign in'; authContent.hidden = false; accountContent.hidden = true; return; }
   trigger.textContent = 'My account';
   authContent.hidden = true; accountContent.hidden = false;

@@ -4,7 +4,7 @@ Secure, mobile-first e-commerce platform for HerStep Collection, built with stat
 
 ## Delivery status
 
-This delivery establishes the platform foundation and Phase 2 product catalogue: a premium responsive entry page, Firebase email/password account flow, secure server-side profile provisioning, public catalogue/category APIs, size-aware product display, and admin-only product/inventory/media contracts. Checkout, orders, payments, and support remain unimplemented.
+This delivery establishes the platform foundation through Phase 3: a premium responsive entry page, Firebase email/password account flow, secure server-side profile provisioning, product catalogue, local cart, authenticated checkout, and server-authoritative order creation. M-Pesa payments and support remain unimplemented.
 
 ## Architecture and data model
 
@@ -17,6 +17,8 @@ This delivery establishes the platform foundation and Phase 2 product catalogue:
 - `api/media/sign-upload.js`: short-lived, authenticated Cloudinary upload-signature contract for approved product image/video formats and size limits. Cloudinary private credentials never enter browser code.
 
 Product documents use `inventory: [{ size, quantity }]` as their authoritative per-size stock representation. `stockQuantity` and `availableSizes` are derived and written only by the API to support fast catalogue reads. Product update operations create an `inventoryLogs` record when quantities change; a later order API will use Firestore transactions to reserve stock and prevent overselling.
+
+`POST /api/orders/create` accepts only product IDs, sizes, quantities, and delivery fields. It ignores browser prices, discounts, delivery fees, totals, and stock. In one Firestore transaction it reloads active products, validates stock, captures immutable line-item prices, reserves each selected size, increments a yearly counter, creates a human-readable `HS-YYYY-000001` order ID, and records initial status history. Checkout reads delivery configuration from the server-managed `settings/checkout` document, which must contain non-negative integer `deliveryFee`, `collectionEnabled: true`, and (if offered) `deliveryEnabled: true`.
 
 Planned top-level Firestore collections are: `users`, `products`, `categories`, `orders`, `orderItems`, `payments`, `paymentTransactions`, `orderStatusHistory`, `supportTickets`, `supportMessages`, `discountRequests`, `bulkOrderRequests`, `productRequests`, `promotions`, `promoCodes`, `notifications`, `adminUsers`, `auditLogs`, `inventoryLogs`, and `settings`.
 

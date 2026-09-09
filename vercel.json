@@ -1,26 +1,46 @@
 {
   "builds": [
-    {
-      "src": "*.html",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "*.js",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "*.css",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "*.json",
-      "use": "@vercel/static"
-    }
+    { "src": "api/*.js", "use": "@vercel/node" },
+    { "src": "*.html", "use": "@vercel/static" },
+    { "src": "*.js", "use": "@vercel/static" },
+    { "src": "*.css", "use": "@vercel/static" },
+    { "src": "*.json", "use": "@vercel/static" }
   ],
   "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
+    { "source": "/api/admin/analytics", "destination": "/api/admin?route=analytics" },
+    { "source": "/api/admin/announcement", "destination": "/api/admin?route=announcement" },
+    { "source": "/api/admin/audit-logs", "destination": "/api/admin?route=audit-logs" },
+    { "source": "/api/admin/brevo-contacts", "destination": "/api/admin?route=brevo-contacts" },
+    { "source": "/api/admin/dashboard", "destination": "/api/admin?route=dashboard" },
+    { "source": "/api/admin/orders", "destination": "/api/admin?route=orders" },
+    { "source": "/api/admin/requests", "destination": "/api/admin?route=requests" },
+    { "source": "/api/announcement", "destination": "/api/catalog?route=announcement" },
+    { "source": "/api/categories", "destination": "/api/catalog?route=categories" },
+    { "source": "/api/firebase-config", "destination": "/api/catalog?route=firebase-config" },
+    { "source": "/api/media/sign-upload", "destination": "/api/catalog?route=media-sign-upload" },
+    { "source": "/api/promo-codes", "destination": "/api/catalog?route=promo-codes" },
+    { "source": "/api/products", "destination": "/api/catalog?route=products" },
+    { "source": "/api/products/:id", "destination": "/api/catalog?route=product-detail&id=:id" },
+    { "source": "/api/promotions", "destination": "/api/catalog?route=promotions" },
+    { "source": "/api/checkout/config", "destination": "/api/orders?route=checkout-config" },
+    { "source": "/api/orders/create", "destination": "/api/orders?route=create" },
+    { "source": "/api/orders/status", "destination": "/api/orders?route=status" },
+    { "source": "/api/orders/track", "destination": "/api/orders?route=track" },
+    { "source": "/api/auth/otp/request", "destination": "/api/users?route=otp-request" },
+    { "source": "/api/auth/otp/verify", "destination": "/api/users?route=otp-verify" },
+    { "source": "/api/auth/sync-profile", "destination": "/api/users?route=sync-profile" },
+    { "source": "/api/dashboard", "destination": "/api/users?route=dashboard" },
+    { "source": "/api/notifications", "destination": "/api/users?route=notifications" },
+    { "source": "/api/payments/mpesa/callback", "destination": "/api/payments?route=callback" },
+    { "source": "/api/payments/receipt", "destination": "/api/payments?route=receipt" },
+    { "source": "/api/payments/status", "destination": "/api/payments?route=status" },
+    { "source": "/api/payments/stk/initiate", "destination": "/api/payments?route=initiate" },
+    { "source": "/api/support", "destination": "/api/support?route=support" },
+    { "source": "/api/support/admin", "destination": "/api/support?route=admin" },
+    { "source": "/api/support/messages", "destination": "/api/support?route=messages" },
+    { "source": "/api/support/status", "destination": "/api/support?route=status" },
+    { "source": "/api/requests/bulk", "destination": "/api/requests?route=bulk" },
+    { "source": "/api/requests/discount", "destination": "/api/requests?route=discount" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

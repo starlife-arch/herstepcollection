@@ -5,6 +5,7 @@ export function methodNotAllowed(response, allowed) {
 
 export function sendError(response, error) {
   const status = error.statusCode || 500;
+  if (status >= 500) console.error(error);
   return response.status(status).json({ error: status < 500 ? error.message : 'We could not complete that request.' });
 }
 

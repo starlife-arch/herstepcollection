@@ -1,8 +1,8 @@
-import { adminDb, requireAdmin } from '../../_lib/firebase-admin.js';
-import { methodNotAllowed, sendError } from '../../_lib/http.js';
-import { validatePromotion } from '../../_lib/promotion.js';
+import { adminDb, requireAdmin } from '../_lib/firebase-admin.js';
+import { methodNotAllowed, sendError } from '../_lib/http.js';
+import { validatePromotion } from '../_lib/promotion.js';
 import { FieldValue } from 'firebase-admin/firestore';
-import { createAuditLog } from '../../_lib/audit.js';
+import { createAuditLog } from '../_lib/audit.js';
 
 export default async function handler(request, response) {
   if (!['POST', 'PATCH'].includes(request.method)) return methodNotAllowed(response, 'POST, PATCH');

@@ -76,6 +76,14 @@ Deploy Firestore rules and indexes with the Firebase CLI after selecting the cor
 firebase deploy --only firestore:rules,firestore:indexes
 ```
 
+## Phase 11 account, email, and announcements
+
+Registration now requires a Kenyan mobile number. The server normalizes accepted values to `+2547XXXXXXXX` (and accepts the equivalent `2547XXXXXXXX`/`07XXXXXXXX` input); the saved profile phone pre-fills checkout but can be overridden for an individual M-Pesa order. Profiles also contain an owner-controlled `marketingConsent` flag.
+
+Brevo transactional mail is configured only with server-side variables: `BREVO_API_KEY`, `BREVO_SENDER_DOMAIN`, `BREVO_SENDER_HELLO`, `BREVO_SENDER_SUPPORT`, `BREVO_SENDER_ORDERS`, `BREVO_SENDER_NAME`, `BREVO_REPLY_TO_EMAIL`, and `BREVO_LIST_ID`. Transaction state changes place deterministic documents in the `emailOutbox` collection, which prevents repeated transaction attempts from creating duplicate email work. `POST /api/admin/brevo-contacts` is administrator-only and syncs only opted-in users to the configured Brevo list; promotional broadcasts must use Brevo Campaigns, not the transactional email endpoint.
+
+`POST /api/auth/otp/request` and `POST /api/auth/otp/verify` are authenticated server endpoints. OTPs are hashed, expire after ten minutes, and cannot be accepted through a browser-supplied verification flag. Administrators control the public announcement document with `PATCH /api/admin/announcement`; customers can retrieve only an enabled announcement through `GET /api/announcement`, and the storefront dismisses it for the current session.
+
 ## Delivery plan
 
 1. **Complete:** architecture, Firebase authentication, profile setup, Firestore structure/security.

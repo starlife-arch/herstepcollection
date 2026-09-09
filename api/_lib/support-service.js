@@ -3,6 +3,7 @@ import { clientError } from './http.js';
 import { assertTicketTransition, ticketId, validateMessageCreate, validateTicketCreate } from './support.js';
 import { createNotification } from './notification.js';
 import { createAuditLog } from './audit.js';
+import { queueEmail, emailHtml } from './email-service.js';
 
 async function getOwnedTicket(transaction, db, ticketDocumentId, actor) {
   const reference = db.collection('supportTickets').doc(ticketDocumentId); const snapshot = await transaction.get(reference);
@@ -15,6 +16,7 @@ async function getOwnedTicket(transaction, db, ticketDocumentId, actor) {
 export async function createSupportTicket({ db, customerId, input }) {
   const ticketInput = validateTicketCreate(input);
   return db.runTransaction(async (transaction) => {
+    const customer = await transaction.get(db.collection('users').doc(customerId));
     if (ticketInput.orderDocumentId) {
       const order = await transaction.get(db.collection('orders').doc(ticketInput.orderDocumentId));
       if (!order.exists) throw clientError('The selected order was not found.', 404);
@@ -27,6 +29,7 @@ export async function createSupportTicket({ db, customerId, input }) {
     transaction.set(counterRef, { sequence, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     transaction.create(ticketRef, ticket);
     transaction.create(messageRef, { senderId: customerId, senderRole: 'CUSTOMER', body: ticketInput.message, createdAt: FieldValue.serverTimestamp() });
+    if (customer.exists && customer.data().email) queueEmail(transaction, db, { key: `${ticketRef.id}-CREATED`, purpose: 'support', to: customer.data().email, subject: `Support ticket ${ticket.ticketId} created`, htmlContent: emailHtml('Support request received', `Your support ticket <strong>${ticket.ticketId}</strong> has been created.`) });
     return { ticketDocumentId: ticketRef.id, ticket };
   });
 }
@@ -54,11 +57,13 @@ export async function createSupportMessage({ db, actor, input }) {
 export async function updateSupportTicketStatus({ db, ticketDocumentId, status, admin }) {
   return db.runTransaction(async (transaction) => {
     const { reference, ticket } = await getOwnedTicket(transaction, db, ticketDocumentId, { uid: admin.uid, isAdmin: true });
+    const customer = status === 'CLOSED' ? await transaction.get(db.collection('users').doc(ticket.customerId)) : null;
     if (ticket.status === status) return { duplicate: true, ticket };
     assertTicketTransition(ticket.status, status);
     transaction.update(reference, { status, updatedAt: FieldValue.serverTimestamp(), statusUpdatedBy: admin.uid, statusUpdatedAt: FieldValue.serverTimestamp() });
     transaction.create(reference.collection('history').doc(`${ticket.status}-${status}`), { previousStatus: ticket.status, newStatus: status, adminId: admin.uid, adminName: admin.name || null, createdAt: FieldValue.serverTimestamp() });
     if (status === 'CLOSED') createNotification(transaction, db, { orderDocumentId: ticketDocumentId, customerId: ticket.customerId, event: 'SUPPORT_CLOSED', title: 'Support ticket closed', body: `Support ticket ${ticket.ticketId} has been closed.` });
+    if (customer?.exists && customer.data().email) queueEmail(transaction, db, { key: `${ticketDocumentId}-CLOSED`, purpose: 'support', to: customer.data().email, subject: `Support ticket ${ticket.ticketId} closed`, htmlContent: emailHtml('Support ticket closed', `Your ticket <strong>${ticket.ticketId}</strong> has been closed. Please contact us if you need further help.`) });
     createAuditLog(transaction, db, { admin, action: 'SUPPORT_STATUS_CHANGED', targetType: 'SUPPORT_TICKET', targetId: ticketDocumentId, previous: { status: ticket.status }, next: { status } });
     return { duplicate: false, ticket: { ...ticket, status } };
   });

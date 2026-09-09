@@ -15,7 +15,8 @@ service cloud.firestore {
         && request.resource.data.uid == request.auth.uid;
       allow update: if isOwner(userId)
         && request.resource.data.role == resource.data.role
-        && request.resource.data.uid == resource.data.uid;
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'phoneNumber', 'deliveryDetails', 'marketingConsent', 'updatedAt']);
       allow update: if isSuperAdmin();
       allow delete: if false;
     }
@@ -27,6 +28,7 @@ service cloud.firestore {
       allow write: if false;
     }
     match /categories/{categoryId} { allow read: if true; allow write: if false; }
+    match /settings/announcement { allow read: if resource.data.enabled == true || isAdmin(); allow write: if false; }
     match /settings/{settingId} { allow read, write: if isAdmin(); }
 
     // Financial, order, inventory, promotion, and audit documents are server-managed.

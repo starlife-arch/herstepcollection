@@ -1,0 +1,10 @@
+import announcement from './_lib/routes/announcement.js';
+import categories from './_lib/routes/categories.js';
+import firebaseConfig from './_lib/routes/firebase-config.js';
+import mediaSignUpload from './_lib/routes/media-sign-upload.js';
+import promoCodes from './_lib/routes/promo-codes.js';
+import product from './_lib/routes/products.js';
+import productDetail from './_lib/routes/products-id.js';
+import promotions from './_lib/routes/promotions.js';
+import { dispatchRoute } from './_lib/route-dispatch.js';
+export default (request, response) => dispatchRoute(request, response, { announcement, categories, 'firebase-config': firebaseConfig, 'media-sign-upload': mediaSignUpload, 'promo-codes': promoCodes, products: product, 'product-detail': productDetail, promotions });

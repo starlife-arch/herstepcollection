@@ -70,6 +70,20 @@ Checkout accepts a promo *code* only, never a client discount or total. The orde
 
 Copy `.env.example` into the Vercel project settings and supply the Firebase Web config and Firebase Admin service-account fields. `FIREBASE_ADMIN_PRIVATE_KEY` must preserve newlines (the server supports escaped `\\n`). The Cloudinary values enable the authenticated product-media signing endpoint. Configure `PRINTPAY_API_KEY` server-side in Vercel; `PRINTPAY_API_BASE_URL` defaults to the documented API URL.
 
+### First administrator
+
+For security, browser registration **always** creates a `CUSTOMER`; there is no public endpoint that can promote an account. First create the account with its intended email address through the customer sign-in flow. Then, in a trusted local terminal with the same three Firebase Admin variables set, grant the role with:
+
+```bash
+node scripts/grant-admin.mjs admin@example.com SUPER_ADMIN
+```
+
+Use `ADMIN` for ordinary staff. This script resolves the Firebase Authentication user by email and updates only the trusted server-side `users/{uid}` role document. Never run it in the browser and never commit service-account credentials.
+
+### Production readiness
+
+Set all six Firebase Web variables and all three Firebase Admin variables from `.env.example` in Vercel's **Production** environment, then redeploy. `GET /api/firebase-config` verifies the public web configuration; Firestore-backed endpoints require the Admin variables as well.
+
 Deploy Firestore rules and indexes with the Firebase CLI after selecting the correct Firebase project:
 
 ```bash

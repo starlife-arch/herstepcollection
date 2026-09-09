@@ -4,7 +4,11 @@ import { getFirestore } from 'firebase-admin/firestore';
 
 function required(name) {
   const value = process.env[name];
-  if (!value) throw new Error(`Missing required server environment variable: ${name}`);
+  if (!value) {
+    const error = new Error(`Missing required server environment variable: ${name}`);
+    error.statusCode = 503;
+    throw error;
+  }
   return value;
 }
 const app = getApps()[0] || initializeApp({

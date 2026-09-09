@@ -44,3 +44,12 @@ test('the Firebase web-config route does not load Firebase Admin', async () => {
   assert.ok([200, 503].includes(result.statusCode));
   assert.notEqual(result.statusCode, 500);
 });
+
+test('the health route reports configuration names without loading Firebase Admin', async () => {
+  const { default: catalog } = await import('../api/catalog.js');
+  const result = response();
+  await catalog({ method: 'GET', query: { route: 'health' } }, result);
+  assert.equal(result.statusCode, 200);
+  assert.equal(typeof result.body.firebaseAdmin.configured, 'boolean');
+  assert.ok(Array.isArray(result.body.firebaseAdmin.missing));
+});

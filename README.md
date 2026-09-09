@@ -82,7 +82,7 @@ Use `ADMIN` for ordinary staff. This script resolves the Firebase Authentication
 
 ### Production readiness
 
-Set all six Firebase Web variables and all three Firebase Admin variables from `.env.example` in Vercel's **Production** environment, then redeploy. `GET /api/firebase-config` verifies the public web configuration; Firestore-backed endpoints require the Admin variables as well.
+Set all six Firebase Web variables and all three Firebase Admin variables from `.env.example` in Vercel's **Production** environment, then redeploy. `GET /api/firebase-config` verifies the public web configuration; Firestore-backed endpoints require the Admin variables as well. `GET /api/health` is a safe diagnostic that lists only any *missing variable names*, never values or secrets.
 
 Deploy Firestore rules and indexes with the Firebase CLI after selecting the correct Firebase project:
 

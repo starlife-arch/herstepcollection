@@ -24,6 +24,7 @@
     { "src": "/api/announcement", "dest": "/api/catalog.js?route=announcement" },
     { "src": "/api/categories", "dest": "/api/catalog.js?route=categories" },
     { "src": "/api/firebase-config", "dest": "/api/catalog.js?route=firebase-config" },
+    { "src": "/api/health", "dest": "/api/catalog.js?route=health" },
     { "src": "/api/media/sign-upload", "dest": "/api/catalog.js?route=media-sign-upload" },
     { "src": "/api/promo-codes", "dest": "/api/catalog.js?route=promo-codes" },
     { "src": "/api/products", "dest": "/api/catalog.js?route=products" },

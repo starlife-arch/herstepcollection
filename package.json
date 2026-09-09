@@ -5,7 +5,6 @@
   "description": "HerStep Collection secure e-commerce platform",
   "type": "module",
   "scripts": {
-    "build": "echo 'No build step needed'",
     "check": "node --check app.js && node --check catalogue.js && node --check product-api.js && node --check cart.js && node --check dashboard.js && find api -name '*.js' -print0 | xargs -0 -n1 node --check",
     "test": "node --test"
   },

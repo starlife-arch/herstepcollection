@@ -1,3 +1,0 @@
-import { adminDb } from './_lib/firebase-admin.js';
-import { methodNotAllowed, sendError } from './_lib/http.js';
-export default async function handler(request, response) { if (request.method !== 'GET') return methodNotAllowed(response, 'GET'); try { const snapshot = await adminDb.collection('settings').doc('announcement').get(); const announcement = snapshot.data(); return response.status(200).json({ announcement: announcement?.enabled ? { enabled: true, message: announcement.message, linkUrl: announcement.linkUrl, linkLabel: announcement.linkLabel } : null }); } catch (error) { return sendError(response, error); } }

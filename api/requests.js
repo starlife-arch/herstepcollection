@@ -1,4 +1,5 @@
-import bulk from './_lib/routes/requests-bulk.js';
-import discount from './_lib/routes/requests-discount.js';
-import { dispatchRoute } from './_lib/route-dispatch.js';
-export default (request, response) => dispatchRoute(request, response, { bulk, discount });
+import { dispatchRoute, lazyRoute } from './_lib/route-dispatch.js';
+export default (request, response) => dispatchRoute(request, response, {
+  bulk: lazyRoute(() => import('./_lib/routes/requests-bulk.js')),
+  discount: lazyRoute(() => import('./_lib/routes/requests-discount.js'))
+});

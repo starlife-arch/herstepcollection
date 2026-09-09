@@ -1,20 +1,19 @@
 import { clientError } from './http.js';
+import { normalizeKenyanPhone } from './phone.js';
 
 const MAX_LINE_QUANTITY = 10;
 const MAX_CART_QUANTITY = 20;
 
 export function validateCheckout(input) {
   const fullName = typeof input.fullName === 'string' ? input.fullName.trim().slice(0, 100) : '';
-  const rawPhone = typeof input.phone === 'string' ? input.phone.replace(/[\s()-]/g, '') : '';
-  const phone = /^0[17]\d{8}$/.test(rawPhone) ? `+254${rawPhone.slice(1)}` : rawPhone;
+  const phone = normalizeKenyanPhone(input.phone);
   const deliveryMethod = input.deliveryMethod;
   const location = typeof input.location === 'string' ? input.location.trim().slice(0, 300) : '';
   const instructions = typeof input.instructions === 'string' ? input.instructions.trim().slice(0, 500) : '';
   if (fullName.length < 2) throw clientError('Enter your full name.');
-  if (!/^\+?254[17]\d{8}$/.test(phone)) throw clientError('Enter a valid Kenyan phone number.');
   if (!['COLLECTION', 'DELIVERY'].includes(deliveryMethod)) throw clientError('Choose collection or delivery.');
   if (deliveryMethod === 'DELIVERY' && location.length < 4) throw clientError('Enter a delivery location.');
-  return { fullName, phone: phone.startsWith('+') ? phone : `+${phone}`, deliveryMethod, location: deliveryMethod === 'COLLECTION' ? 'Juja Town, Jerry House, near Juja Posta, Outside Shop No. 12' : location, instructions: instructions || null };
+  return { fullName, phone, deliveryMethod, location: deliveryMethod === 'COLLECTION' ? 'Juja Town, Jerry House, near Juja Posta, Outside Shop No. 12' : location, instructions: instructions || null };
 }
 
 export function validateCart(cart) {

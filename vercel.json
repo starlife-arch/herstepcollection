@@ -48,6 +48,7 @@
     { "src": "/api/support/status", "dest": "/api/support.js?route=status" },
     { "src": "/api/requests/bulk", "dest": "/api/requests.js?route=bulk" },
     { "src": "/api/requests/discount", "dest": "/api/requests.js?route=discount" },
+    { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }

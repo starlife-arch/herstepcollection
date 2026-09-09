@@ -1,0 +1,5 @@
+import { FieldValue } from 'firebase-admin/firestore';
+import { adminDb, requireUser } from '../../_lib/firebase-admin.js';
+import { methodNotAllowed, sendError, clientError } from '../../_lib/http.js';
+import { verifyOtp } from '../../_lib/otp.js';
+export default async function handler(request, response) { if (request.method !== 'POST') return methodNotAllowed(response, 'POST'); try { const user = await requireUser(request); const code = request.body?.code; await adminDb.runTransaction(async (transaction) => { const ref = adminDb.collection('otpCodes').doc(user.uid); const snapshot = await transaction.get(ref); if (!snapshot.exists || snapshot.data().usedAt) throw clientError('The verification code is invalid or has expired.'); verifyOtp(snapshot.data(), code); transaction.update(ref, { usedAt: FieldValue.serverTimestamp() }); transaction.set(adminDb.collection('users').doc(user.uid), { emailVerifiedAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() }, { merge: true }); }); return response.status(200).json({ ok: true }); } catch (error) { return sendError(response, error); } }

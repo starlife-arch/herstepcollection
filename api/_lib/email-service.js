@@ -35,4 +35,28 @@ export async function deliverQueuedEmail({ db, key, fetchImpl = fetch }) {
   return true;
 }
 
-export const emailHtml = (title, body) => `<!doctype html><html><body style="margin:0;background:#f4f6f8;font-family:Arial,sans-serif;color:#10233f"><main style="max-width:600px;margin:24px auto;background:#fff;padding:32px;border:1px solid #dce2e8"><p style="letter-spacing:1px;font-size:12px">HERSTEP COLLECTION</p><h1 style="font-size:24px">${title}</h1><p style="font-size:16px;line-height:1.6">${body}</p><p style="font-size:14px;color:#536273">Step Into Your Style.</p></main></body></html>`;
+export const emailHtml = (title, body, options = {}) => {
+  const ctaLabel = options.ctaLabel || 'Visit HerStep Collection';
+  const ctaUrl = options.ctaUrl || 'https://herstepcollection.com/';
+  return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f6f8;color:#10233f;font-family:Arial,'Helvetica Neue',sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;margin:0;background:#f4f6f8;"><tr><td align="center" style="padding:28px 14px;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #dce2e9;">
+      <tr><td style="padding:28px 34px 22px;background:#10233f;">
+        <p style="margin:0;color:#ffffff;font-size:17px;font-weight:700;letter-spacing:2px;line-height:1.25;">HERSTEP <span style="color:#d79a6d;">COLLECTION</span></p>
+        <p style="margin:7px 0 0;color:#cbd5e1;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;">Step Into Your Style.</p>
+      </td></tr>
+      <tr><td style="padding:34px;">
+        <h1 style="margin:0 0 16px;color:#10233f;font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:700;line-height:1.2;">${title}</h1>
+        <div style="color:#40516a;font-size:16px;line-height:1.65;">${body}</div>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top:27px;"><tr><td style="background:#b96f40;"><a href="${ctaUrl}" style="display:inline-block;padding:13px 20px;color:#ffffff;font-size:14px;font-weight:700;letter-spacing:.2px;text-decoration:none;">${ctaLabel}</a></td></tr></table>
+      </td></tr>
+      <tr><td style="padding:22px 34px;border-top:1px solid #dce2e9;background:#fafbfc;color:#607087;font-size:12px;line-height:1.55;">
+        <p style="margin:0 0 7px;color:#10233f;font-weight:700;">HerStep Collection · Juja Town</p>
+        <p style="margin:0;">Jerry House, near Juja Posta, Outside Shop No. 12<br><a href="tel:+254799021089" style="color:#10233f;">+254 799 021 089</a> · <a href="mailto:herstepcollection@gmail.com" style="color:#10233f;">herstepcollection@gmail.com</a></p>
+      </td></tr>
+    </table>
+  </td></tr></table>
+</body></html>`;
+};

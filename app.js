@@ -93,7 +93,12 @@ form.addEventListener('submit', async (event) => {
   finally { button.disabled = false; }
 });
 
-document.querySelector('#sign-out').addEventListener('click', () => authApi.signOut(auth));
+document.querySelector('#sign-out').addEventListener('click', async () => {
+  if (!authApi || !auth) return;
+  await authApi.signOut(auth);
+  dialog.close();
+  window.location.assign('/');
+});
 async function renderAdminLink(user) {
   const adminLink = document.querySelector('#admin-link');
   adminLink.hidden = true;
@@ -153,3 +158,16 @@ async function loadHero() {
     if (hero.videoUrl) { const video = document.createElement('video'); video.src = hero.videoUrl; video.autoplay = true; video.muted = true; video.loop = true; video.playsInline = true; video.className = 'hero-video'; section.prepend(video); }
   } catch { /* The default hero remains available if merchandising settings cannot load. */ }
 }
+
+// A form action that points at mailto: is treated as an insecure form target by
+// browsers on HTTPS pages.  Until a consent-aware newsletter provider is wired,
+// acknowledge the address locally rather than submitting it anywhere.
+document.querySelector('#newsletter-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const feedback = document.querySelector('#newsletter-message');
+  if (!form.email.checkValidity()) { form.reportValidity(); return; }
+  feedback.classList.add('form-message-success');
+  feedback.textContent = 'Thanks — newsletter updates will be available soon.';
+  form.reset();
+});

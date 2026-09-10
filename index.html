@@ -73,7 +73,7 @@
           <label id="name-field" hidden>Full name<input id="auth-name" name="name" autocomplete="name" maxlength="100" /></label>
           <label id="phone-field" hidden>Phone number<input id="auth-phone" name="phone" autocomplete="tel" inputmode="tel" placeholder="+254 7…" /></label>
           <label>Email address<input id="auth-email" name="email" type="email" autocomplete="email" required /></label>
-          <label>Password<input id="auth-password" name="password" type="password" autocomplete="current-password" minlength="8" required /></label>
+          <label>Password<input id="auth-password" name="password" type="password" autocomplete="current-password" minlength="8" required aria-describedby="password-requirements" /></label><label id="password-confirm-field" hidden>Confirm password<input id="auth-password-confirm" name="passwordConfirm" type="password" autocomplete="new-password" minlength="8" /></label><p id="password-requirements" class="password-requirements" hidden>Use 8+ characters with uppercase, lowercase, a number and a symbol.</p>
           <label id="marketing-field" hidden><input id="auth-marketing" name="marketingConsent" type="checkbox" /> Send me offers and updates.</label>
           <p class="form-message" id="auth-message" role="alert" aria-live="polite"></p>
           <button class="button" id="auth-submit" type="submit">Sign in</button>

@@ -17,6 +17,8 @@ const marketingField = document.querySelector('#marketing-field');
 const heading = document.querySelector('#auth-heading');
 const message = document.querySelector('#auth-message');
 const forgotPasswordButton = document.querySelector('#forgot-password');
+const passwordConfirmField = document.querySelector('#password-confirm-field');
+const passwordRequirements = document.querySelector('#password-requirements');
 let auth;
 let authApi;
 let registerMode = false;
@@ -39,6 +41,9 @@ function updateMode() {
   document.querySelector('#auth-submit').textContent = registerMode ? 'Create account' : 'Sign in';
   modeButton.textContent = registerMode ? 'Already have an account? Sign in' : 'New to HerStep? Create an account';
   forgotPasswordButton.hidden = registerMode;
+  passwordConfirmField.hidden = !registerMode;
+  passwordRequirements.hidden = !registerMode;
+  document.querySelector('#auth-password-confirm').required = registerMode;
   message.textContent = '';
   message.classList.remove('form-message-success');
 }
@@ -76,12 +81,14 @@ form.addEventListener('submit', async (event) => {
   const button = document.querySelector('#auth-submit'); button.disabled = true;
   try {
     const email = form.email.value.trim(); const password = form.password.value;
+    if (registerMode && !isStrongPassword(password)) throw new Error('Use 8+ characters with uppercase, lowercase, a number and a symbol.');
+    if (registerMode && password !== form.passwordConfirm.value) throw new Error('Your passwords do not match.');
     if (registerMode) {
       const credential = await authApi.createUserWithEmailAndPassword(auth, email, password);
       await authApi.updateProfile(credential.user, { displayName: form.name.value.trim() });
       await syncProfile(credential.user, form.name.value.trim(), form.phone.value.trim(), form.marketingConsent.checked);
     } else { await authApi.signInWithEmailAndPassword(auth, email, password); }
-  } catch (error) { message.textContent = friendlyAuthError(error.code); }
+  } catch (error) { message.textContent = error.message || friendlyAuthError(error.code); }
   finally { button.disabled = false; }
 });
 
@@ -116,6 +123,7 @@ async function syncProfile(user, displayName = '', phoneNumber = null, marketing
   const response = await fetch('/api/auth/sync-profile', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body:JSON.stringify(body) });
   if (!response.ok) throw new Error('Profile sync failed.');
 }
+function isStrongPassword(password) { return password.length >= 8 && /[a-z]/.test(password) && /[A-Z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password); }
 function friendlyAuthError(code) {
   const errors = { 'auth/email-already-in-use':'An account already exists for this email address.', 'auth/invalid-email':'Enter a valid email address.', 'auth/weak-password':'Use a password with at least 8 characters.', 'auth/invalid-credential':'Email or password is incorrect.', 'auth/too-many-requests':'Too many attempts. Please wait and try again.' };
   return errors[code] || 'We could not complete that request. Please try again.';

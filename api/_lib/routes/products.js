@@ -17,8 +17,21 @@ export default async function handler(request, response) {
         const snapshot = await adminDb.collection('products').orderBy('createdAt', 'desc').limit(100).get();
         return response.status(200).json({ products: snapshot.docs.map((doc) => productResponse(doc.id, doc.data())), nextPage: null });
       }
-      const snapshot = await adminDb.collection('products').where('status', '==', 'ACTIVE').orderBy('createdAt', 'desc').limit(PAGE_SIZE).get();
-      return response.status(200).json({ products: snapshot.docs.map((doc) => productResponse(doc.id, doc.data())), nextPage: null });
+      // Some products published before `status` became the canonical field only
+      // have `active: true`.  Querying solely by status made the public catalogue
+      // appear empty even though those products were legitimately published.  This
+      // is a read-time compatibility bridge; all current writes use `status`.
+      // Reading through the Admin SDK here is still server-side and lets us apply
+      // the same public visibility policy without exposing drafts or archives.
+      const snapshot = await adminDb.collection('products').orderBy('createdAt', 'desc').limit(100).get();
+      const products = snapshot.docs
+        .filter((doc) => {
+          const product = doc.data();
+          return product.status === 'ACTIVE' || (product.status === undefined && product.active === true);
+        })
+        .slice(0, PAGE_SIZE)
+        .map((doc) => productResponse(doc.id, doc.data()));
+      return response.status(200).json({ products, nextPage: null });
     } catch (error) { return sendError(response, error); }
   }
   if (request.method !== 'POST') return methodNotAllowed(response, 'GET, POST');

@@ -1,26 +1,33 @@
 const login = document.querySelector('#admin-login');
-const content = document.querySelector('#admin-content');
+const workspace = document.querySelector('#admin-workspace');
+let content = null;
 const dialog = document.querySelector('#admin-auth');
 let auth; let authApi; let user; let activeView = 'overview';
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[character]);
 const money = (value) => new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 0 }).format(value || 0).replace('KES', 'KSh');
 const titles = { overview:'Overview', products:'Products & inventory', categories:'Categories', orders:'Orders', payments:'Payments', support:'Support inbox', requests:'Customer requests', hero:'Hero banner', announcement:'Store announcement', audit:'Audit log' };
 
-document.querySelector('#admin-sign-in').addEventListener('click', async () => { try { await initialise(); dialog.showModal(); } catch (error) { login.querySelector('p:last-of-type').textContent = error.message; } });
+document.querySelector('#admin-sign-in').addEventListener('click', async () => { try { await initialise(); dialog.showModal(); } catch (error) { document.querySelector('#admin-gate-message').textContent = error.message; } });
 document.querySelector('#admin-auth-close').addEventListener('click', () => dialog.close());
-document.querySelector('#admin-sign-out').addEventListener('click', () => authApi.signOut(auth));
-document.querySelector('#admin-menu').addEventListener('click', () => document.querySelector('.admin-sidebar').classList.toggle('is-open'));
-document.querySelector('#admin-nav').addEventListener('click', (event) => { const button = event.target.closest('[data-view]'); if (!button) return; activeView = button.dataset.view; document.querySelectorAll('#admin-nav button').forEach((item) => item.classList.toggle('is-active', item === button)); document.querySelector('#admin-page-title').textContent = titles[activeView]; document.querySelector('.admin-sidebar').classList.remove('is-open'); render(); });
 
 async function initialise() { if (auth) return; const response = await fetch('/api/firebase-config'); if (!response.ok) throw new Error('Administrator access is not configured.'); const config = await response.json(); const [{ initializeApp }, authModule] = await Promise.all([import('https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js'), import('https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js')]); authApi = authModule; auth = authApi.getAuth(initializeApp(config)); authApi.onAuthStateChanged(auth, renderIdentity); }
 document.querySelector('#admin-auth-form').addEventListener('submit', async (event) => { event.preventDefault(); const form = event.currentTarget; const message = form.querySelector('.form-message'); message.textContent = ''; try { await authApi.signInWithEmailAndPassword(auth, form.email.value.trim(), form.password.value); dialog.close(); } catch { message.textContent = 'Administrator sign in was not successful.'; } });
 
 async function renderIdentity(nextUser) {
-  user = nextUser; document.querySelector('#admin-sign-out').hidden = !user;
-  if (!user) { login.hidden = false; content.hidden = true; document.querySelector('#admin-identity').textContent = 'Secure administrator access'; return; }
-  try { await api('/api/admin/dashboard'); login.hidden = true; content.hidden = false; document.querySelector('#admin-identity').textContent = user.email || 'Administrator'; render(); }
-  catch { login.hidden = false; content.hidden = true; login.querySelector('p:last-of-type').textContent = 'This account is not authorized to access HerStep administration.'; document.querySelector('#admin-identity').textContent = 'Access denied'; }
+  user = nextUser;
+  if (!user) { unmountWorkspace(); login.hidden = false; document.querySelector('#admin-gate-message').textContent = 'Sign in with your authorized administrator account to manage products, customer support and store updates.'; return; }
+  try { await api('/api/admin/dashboard'); if (user !== nextUser) return; login.hidden = true; mountWorkspace(); document.querySelector('#admin-identity').textContent = user.email || 'Administrator'; render(); }
+  catch { unmountWorkspace(); login.hidden = false; document.querySelector('#admin-gate-message').textContent = 'This account is not authorized to access HerStep administration.'; }
 }
+function mountWorkspace() {
+  if (content) return;
+  workspace.innerHTML = `<div class="admin-app"><aside class="admin-sidebar"><a class="brand" href="/">HERSTEP <span>COLLECTION</span><small>Operations</small></a><nav id="admin-nav" aria-label="Admin navigation"><button data-view="overview" class="is-active">Overview</button><button data-view="products">Products & inventory</button><button data-view="categories">Categories</button><button data-view="orders">Orders</button><button data-view="payments">Payments</button><button data-view="support">Support inbox</button><button data-view="requests">Customer requests</button><button data-view="hero">Hero banner</button><button data-view="announcement">Store announcement</button><button data-view="audit">Audit log</button></nav><a href="/">View storefront</a></aside><main class="admin-main"><header class="admin-topbar"><div><button class="admin-menu" id="admin-menu" type="button" aria-label="Toggle admin menu">Menu</button><p class="eyebrow">HerStep control room</p><h1 id="admin-page-title">Overview</h1></div><div><span id="admin-identity">Secure administrator access</span><button class="button button-secondary" id="admin-sign-out" type="button">Sign out</button></div></header><section id="admin-content" aria-live="polite"></section></main></div>`;
+  content = document.querySelector('#admin-content');
+  document.querySelector('#admin-sign-out').addEventListener('click', () => authApi.signOut(auth));
+  document.querySelector('#admin-menu').addEventListener('click', () => document.querySelector('.admin-sidebar').classList.toggle('is-open'));
+  document.querySelector('#admin-nav').addEventListener('click', (event) => { const button = event.target.closest('[data-view]'); if (!button) return; activeView = button.dataset.view; document.querySelectorAll('#admin-nav button').forEach((item) => item.classList.toggle('is-active', item === button)); document.querySelector('#admin-page-title').textContent = titles[activeView]; document.querySelector('.admin-sidebar').classList.remove('is-open'); render(); });
+}
+function unmountWorkspace() { workspace.replaceChildren(); content = null; }
 async function api(path, options = {}) { const token = await user.getIdToken(); const response = await fetch(path, { ...options, headers: { 'Content-Type':'application/json', Authorization:`Bearer ${token}`, ...(options.headers || {}) } }); const body = await response.json(); if (!response.ok) throw new Error(body.error || 'Administrator access is required.'); return body; }
 async function render() { content.innerHTML = '<p class="admin-loading">Loading live operations…</p>'; try { await ({ overview, products, categories, orders, payments, support, requests, hero, announcement, audit }[activeView])(); } catch (error) { content.innerHTML = `<section class="admin-panel"><p class="form-message">${escapeHtml(error.message)}</p></section>`; } }
 function go(view) { document.querySelector(`[data-view="${view}"]`).click(); }

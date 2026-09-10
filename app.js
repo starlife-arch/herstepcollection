@@ -36,7 +36,10 @@ window.addEventListener('herstep-cart-updated', renderCartCount);
 window.addEventListener('storage', (event) => { if (event.key === 'herstep-cart-v1') renderCartCount(); });
 loadAnnouncement();
 if (pathname === '/') loadHero();
-trigger.addEventListener('click', async () => { dialog.showModal(); await initialiseAuth(); });
+trigger.addEventListener('click', async () => {
+  if (auth?.currentUser) { window.location.assign('/account'); return; }
+  dialog.showModal(); await initialiseAuth();
+});
 closeButton.addEventListener('click', () => dialog.close());
 modeButton.addEventListener('click', () => { registerMode = !registerMode; updateMode(); });
 forgotPasswordButton.addEventListener('click', sendPasswordReset);
@@ -222,7 +225,7 @@ async function loadHero() {
 // A form action that points at mailto: is treated as an insecure form target by
 // browsers on HTTPS pages.  Until a consent-aware newsletter provider is wired,
 // acknowledge the address locally rather than submitting it anywhere.
-document.querySelector('#newsletter-form').addEventListener('submit', (event) => {
+document.querySelector('#newsletter-form')?.addEventListener('submit', (event) => {
   event.preventDefault();
   const form = event.currentTarget;
   const feedback = document.querySelector('#newsletter-message');

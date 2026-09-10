@@ -48,6 +48,7 @@
     { "src": "/api/payments/stk/initiate", "dest": "/api/payments.js?route=initiate" },
     { "src": "/api/support", "dest": "/api/support.js?route=support" },
     { "src": "/api/support/admin", "dest": "/api/support.js?route=admin" },
+    { "src": "/api/support/internal", "dest": "/api/support.js?route=internal" },
     { "src": "/api/support/messages", "dest": "/api/support.js?route=messages" },
     { "src": "/api/support/status", "dest": "/api/support.js?route=status" },
     { "src": "/api/requests/bulk", "dest": "/api/requests.js?route=bulk" },

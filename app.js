@@ -1,4 +1,5 @@
 import { pathname, renderRoute } from './router.js';
+import './widget.js';
 
 renderRoute();
 if (pathname === '/' || pathname === '/shop' || pathname === '/collections' || pathname.startsWith('/category/') || pathname.startsWith('/product/')) import('./catalogue.js');

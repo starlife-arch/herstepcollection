@@ -5,7 +5,7 @@ const result = document.querySelector('#catalogue-result');
 const dialog = document.querySelector('#product-dialog');
 const filters = {
   search: document.querySelector('#product-search'), category: document.querySelector('#category-filter'),
-  size: document.querySelector('#size-filter'), availability: document.querySelector('#availability-filter')
+  size: document.querySelector('#size-filter'), availability: document.querySelector('#availability-filter'), headerSearch: document.querySelector('#header-product-search')
 };
 let products = [];
 let categories = [];
@@ -17,7 +17,7 @@ function escapeHtml(value) {
 function formatMoney(value) { return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', maximumFractionDigits: 0 }).format(value).replace('KES', 'KSh'); }
 
 function filterProducts() {
-  const search = filters.search.value.trim().toLowerCase();
+  const search = (filters.search.value || filters.headerSearch.value).trim().toLowerCase();
   return products.filter((product) => {
     const text = `${product.name} ${product.sku} ${categoryName(product.categoryId)}`.toLowerCase();
     const inStock = product.stockQuantity > 0;
@@ -45,6 +45,14 @@ function render() {
   }).join('');
 }
 
+function renderCategoryPills() {
+  const rail = document.querySelector('#category-pills');
+  if (!rail) return;
+  rail.innerHTML = `<button class="category-pill is-active" type="button" data-category="">All styles</button>${categories.map((category) => `<button class="category-pill" type="button" data-category="${escapeHtml(category.id)}">${escapeHtml(category.name)}</button>`).join('')}`;
+  rail.addEventListener('click', (event) => { const button = event.target.closest('[data-category]'); if (!button) return; filters.category.value = button.dataset.category; rail.querySelectorAll('.category-pill').forEach((pill) => pill.classList.toggle('is-active', pill === button)); render(); document.querySelector('#shop').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+}
+
+
 function openDetail(product) {
   const isSoldOut = product.stockQuantity === 0;
   const images = product.images.map((image, index) => `<img class="${index ? 'product-detail-extra' : 'product-detail-main'}" src="${escapeHtml(image.url)}" alt="${escapeHtml(image.alt || product.name)}" />`).join('');
@@ -65,7 +73,9 @@ dialog.addEventListener('submit', (event) => {
   if (!stock || !Number.isInteger(quantity) || quantity < 1 || quantity > 10 || quantity > stock.quantity) return;
   window.dispatchEvent(new CustomEvent('herstep-add-cart', { detail: { productId: product.id, size, quantity, name: product.name, price: product.salePrice ?? product.price, image: product.images[0].url } })); dialog.close();
 });
-Object.values(filters).forEach((filter) => filter.addEventListener('input', render));
+filters.search.addEventListener('input', () => { filters.headerSearch.value = filters.search.value; render(); });
+filters.headerSearch.addEventListener('input', () => { filters.search.value = filters.headerSearch.value; render(); });
+[filters.category, filters.size, filters.availability].forEach((filter) => filter.addEventListener('input', render));
 
 async function initialiseCatalogue() {
   try {
@@ -74,6 +84,7 @@ async function initialiseCatalogue() {
     products = productData.products;
     updateProductSchema(products);
     filters.category.insertAdjacentHTML('beforeend', categories.map((category) => `<option value="${escapeHtml(category.id)}">${escapeHtml(category.name)}</option>`).join(''));
+    renderCategoryPills();
     render();
   } catch (error) {
     result.textContent = 'The collection could not be loaded.';

@@ -15,7 +15,7 @@ export default async function handler(request, response) {
     if (request.method !== 'GET') return methodNotAllowed(response, 'GET, POST');
     const user = await requireUser(request);
     const requestedStatus = typeof request.query?.status === 'string' ? request.query.status : null;
-    if (requestedStatus && !['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'].includes(requestedStatus)) throw clientError('Provide a valid support ticket status.');
+    if (requestedStatus && !['OPEN', 'IN_PROGRESS', 'WAITING_FOR_CUSTOMER', 'RESOLVED', 'CLOSED'].includes(requestedStatus)) throw clientError('Provide a valid support ticket status.');
     let query = adminDb.collection('supportTickets').where('customerId', '==', user.uid);
     if (requestedStatus) query = query.where('status', '==', requestedStatus);
     const tickets = await query.orderBy('updatedAt', 'desc').limit(50).get();

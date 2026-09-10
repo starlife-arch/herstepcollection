@@ -39,6 +39,14 @@
     { "collectionGroup": "promotions", "queryScope": "COLLECTION", "fields": [
       { "fieldPath": "active", "order": "ASCENDING" },
       { "fieldPath": "startsAt", "order": "DESCENDING" }
+    ] },
+    { "collectionGroup": "discountRequests", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "status", "order": "ASCENDING" },
+      { "fieldPath": "createdAt", "order": "DESCENDING" }
+    ] },
+    { "collectionGroup": "bulkOrderRequests", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "status", "order": "ASCENDING" },
+      { "fieldPath": "createdAt", "order": "DESCENDING" }
     ] }
   ],
   "fieldOverrides": []

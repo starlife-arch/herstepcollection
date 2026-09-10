@@ -2,7 +2,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { assertOrderCanBePaid, assertPaymentTransition, assertVerifiedPaymentAmount, paymentReceiptNumber, validateVerifiedCallback } from './payment.js';
 import { clientError } from './http.js';
 import { createNotification } from './notification.js';
-import { queueEmail, emailHtml } from './email-service.js';
+import { deliverQueuedEmailInline, queueEmail, emailHtml } from './email-service.js';
 
 function timestamp(value) { return value?.toDate?.().toISOString() || null; }
 
@@ -42,7 +42,7 @@ export async function attachProviderReference({ db, paymentId, providerReference
 
 export async function applyVerifiedCallback({ db, callback }) {
   const verified = validateVerifiedCallback(callback);
-  return db.runTransaction(async (transaction) => {
+  const result = await db.runTransaction(async (transaction) => {
     const matches = await transaction.get(db.collection('payments').where('providerReference', '==', verified.providerReference).limit(1));
     if (matches.empty) throw clientError('Payment request not found.', 404);
     const paymentRef = matches.docs[0].ref; const payment = matches.docs[0].data();
@@ -65,7 +65,11 @@ export async function applyVerifiedCallback({ db, callback }) {
       : ['Payment update', `Your payment for order ${payment.orderId} is ${verified.status.toLowerCase()}.`];
     transaction.create(db.collection('orderStatusHistory').doc(`${payment.orderDocumentId}-PAYMENT-${verified.status}`), { orderId: payment.orderId, orderDocumentId: payment.orderDocumentId, customerId: payment.customerId, eventType: 'PAYMENT_STATUS_CHANGED', previousStatus: null, newStatus: null, paymentStatus: verified.status, note: verified.failureReason, source: 'PRINTPAY', paymentId: payment.paymentId, createdAt: FieldValue.serverTimestamp() });
     createNotification(transaction, db, { orderDocumentId: payment.orderDocumentId, customerId: payment.customerId, event: `PAYMENT_${verified.status}`, title: notification[0], body: notification[1] });
-    if (orderSnapshot.data().customerEmail) queueEmail(transaction, db, { key: `${payment.orderDocumentId}-PAYMENT_${verified.status}`, purpose: 'orders', to: orderSnapshot.data().customerEmail, subject: notification[0], htmlContent: emailHtml(notification[0], notification[1]) });
-    return { duplicate: false, payment: { ...payment, ...updates, createdAt: timestamp(payment.createdAt) } };
+    const emailKey = orderSnapshot.data().customerEmail ? `${payment.orderDocumentId}-PAYMENT_${verified.status}` : null;
+    if (emailKey) queueEmail(transaction, db, { key: emailKey, purpose: 'payments', to: orderSnapshot.data().customerEmail, subject: notification[0], htmlContent: emailHtml(notification[0], notification[1]) });
+    return { duplicate: false, payment: { ...payment, ...updates, createdAt: timestamp(payment.createdAt) }, emailKey };
   });
+  if (result.emailKey) await deliverQueuedEmailInline({ db, key: result.emailKey });
+  delete result.emailKey;
+  return result;
 }

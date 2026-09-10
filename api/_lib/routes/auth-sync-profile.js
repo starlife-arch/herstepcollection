@@ -1,7 +1,7 @@
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminDb, requireUser } from '../firebase-admin.js';
 import { normalizeKenyanPhone } from '../phone.js';
-import { sendEmail, emailHtml } from '../email-service.js';
+import { deliverQueuedEmailInline, queueEmail, emailHtml } from '../email-service.js';
 
 export default async function handler(request, response) {
   if (request.method !== 'POST') return response.status(405).json({ error: 'Method not allowed.' });
@@ -30,8 +30,12 @@ export default async function handler(request, response) {
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp()
       });
-      // A welcome message is sent only for the initial profile creation.
-      await sendEmail({ purpose: 'hello', to: user.email, subject: 'Welcome to HerStep Collection', htmlContent: emailHtml('Welcome to HerStep', 'Your HerStep Collection account is ready. Step into your style.') });
+      // A welcome message is queued and sent only for the initial profile creation.
+      if (user.email) {
+        const emailKey = `${user.uid}-WELCOME`;
+        await adminDb.runTransaction(async (transaction) => { queueEmail(transaction, adminDb, { key: emailKey, purpose: 'hello', to: user.email, subject: 'Welcome to HerStep Collection', htmlContent: emailHtml('Welcome to HerStep', 'Your HerStep Collection account is ready. Step into your style.') }); });
+        await deliverQueuedEmailInline({ db: adminDb, key: emailKey });
+      }
     } else {
       await reference.update({
         email: user.email ?? snapshot.data().email ?? null,

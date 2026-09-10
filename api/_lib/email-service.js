@@ -1,6 +1,6 @@
 import { FieldValue } from 'firebase-admin/firestore';
 
-const PURPOSES = { hello: 'BREVO_SENDER_HELLO', support: 'BREVO_SENDER_SUPPORT', orders: 'BREVO_SENDER_ORDERS' };
+const PURPOSES = { hello: 'BREVO_SENDER_HELLO', support: 'BREVO_SENDER_SUPPORT', orders: 'BREVO_SENDER_ORDERS', payments: 'BREVO_SENDER_PAYMENTS', promotions: 'BREVO_SENDER_PROMOTIONS' };
 
 function sender(purpose) {
   const email = process.env[PURPOSES[purpose]];
@@ -27,12 +27,29 @@ export async function sendEmail({ purpose, to, subject, htmlContent, fetchImpl =
 
 export async function deliverQueuedEmail({ db, key, fetchImpl = fetch }) {
   const reference = db.collection('emailOutbox').doc(emailId(key));
-  const snapshot = await reference.get();
-  if (!snapshot.exists || snapshot.data().status === 'SENT') return false;
-  const email = snapshot.data();
-  await sendEmail({ ...email, fetchImpl });
-  await reference.update({ status: 'SENT', sentAt: FieldValue.serverTimestamp() });
+  const email = await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(reference);
+    if (!snapshot.exists || snapshot.data().status !== 'PENDING') return null;
+    const pending = snapshot.data();
+    transaction.update(reference, { status: 'SENDING', sendingAt: FieldValue.serverTimestamp() });
+    return pending;
+  });
+  if (!email) return false;
+  try {
+    await sendEmail({ ...email, fetchImpl });
+    await reference.update({ status: 'SENT', sentAt: FieldValue.serverTimestamp() });
+  } catch (error) {
+    await reference.update({ status: 'PENDING', lastError: 'Delivery attempt failed.', updatedAt: FieldValue.serverTimestamp() });
+    throw error;
+  }
   return true;
+}
+
+// Delivery failures must not roll back the business event that created the outbox
+// record. The retained PENDING document is the visible audit trail for staff.
+export async function deliverQueuedEmailInline({ db, key }) {
+  try { return await deliverQueuedEmail({ db, key }); }
+  catch (error) { console.error(`Email delivery failed for outbox record ${emailId(key)}.`, error); return false; }
 }
 
 export const emailHtml = (title, body, options = {}) => {

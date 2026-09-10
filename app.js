@@ -25,6 +25,7 @@ let registerMode = false;
 
 document.querySelector('#year').textContent = new Date().getFullYear();
 loadAnnouncement();
+loadHero();
 trigger.addEventListener('click', async () => { dialog.showModal(); await initialiseAuth(); });
 closeButton.addEventListener('click', () => dialog.close());
 modeButton.addEventListener('click', () => { registerMode = !registerMode; updateMode(); });
@@ -138,4 +139,17 @@ async function loadAnnouncement() {
     banner.querySelector('button').addEventListener('click', () => { sessionStorage.setItem('herstep-announcement-dismissed', 'true'); banner.remove(); });
     document.body.prepend(banner);
   } catch { /* Announcements must never prevent the storefront from loading. */ }
+}
+
+async function loadHero() {
+  try {
+    const response = await fetch('/api/hero'); const { hero } = await response.json();
+    if (!response.ok || !hero) return;
+    const section = document.querySelector('#storefront-hero');
+    document.querySelector('#hero-title').textContent = hero.title;
+    document.querySelector('#hero-copy').textContent = hero.copy;
+    const cta = document.querySelector('#hero-cta'); cta.textContent = hero.ctaLabel; cta.href = hero.ctaUrl;
+    if (hero.imageUrl) section.style.setProperty('--hero-image', `url("${hero.imageUrl.replace(/["\\]/g, '')}")`);
+    if (hero.videoUrl) { const video = document.createElement('video'); video.src = hero.videoUrl; video.autoplay = true; video.muted = true; video.loop = true; video.playsInline = true; video.className = 'hero-video'; section.prepend(video); }
+  } catch { /* The default hero remains available if merchandising settings cannot load. */ }
 }

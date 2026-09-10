@@ -3,7 +3,7 @@ import { clientError, methodNotAllowed, sendError } from './http.js';
 import { orderId, validateCart, validateCheckout, validateOrderPromotion } from './order.js';
 import { applyPromoCode } from './promotion-service.js';
 import { enforceRateLimit } from './rate-limit.js';
-import { queueEmail, emailHtml } from './email-service.js';
+import { deliverQueuedEmailInline, queueEmail, emailHtml } from './email-service.js';
 
 export function createOrderHandler({ db, requireAuthenticatedUser } = {}) { return async function handler(request, response) {
   if (request.method !== 'POST') return methodNotAllowed(response, 'POST');
@@ -53,9 +53,12 @@ export function createOrderHandler({ db, requireAuthenticatedUser } = {}) { retu
       const order = { orderId: humanOrderId, customerId: user.uid, customerEmail: user.email || null, items, subtotal, deliveryFee, discount: promotion.discount, promoCode: promotion.promoCode, promotion: promotion.promotion, total: subtotal + deliveryFee - promotion.discount, currency: 'KES', paymentStatus: 'PENDING', orderStatus: 'PENDING', inventoryReserved: true, delivery, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() };
       transaction.create(reference, order);
       transaction.create(db.collection('orderStatusHistory').doc(), { orderId: humanOrderId, orderDocumentId: reference.id, customerId: user.uid, previousStatus: null, newStatus: 'PENDING', note: 'Order placed; awaiting payment.', createdAt: FieldValue.serverTimestamp() });
-      if (user.email) queueEmail(transaction, db, { key: `${reference.id}-ORDER_CREATED`, purpose: 'orders', to: user.email, subject: `Order ${humanOrderId} confirmed`, htmlContent: emailHtml('Order confirmed', `We received your order <strong>${humanOrderId}</strong>. Payment is pending.`) });
-      return { id: reference.id, orderId: humanOrderId, subtotal, deliveryFee, discount: promotion.discount, total: subtotal + deliveryFee - promotion.discount, paymentStatus: 'PENDING', orderStatus: 'PENDING' };
+      const emailKey = user.email ? `${reference.id}-ORDER_CREATED` : null;
+      if (emailKey) queueEmail(transaction, db, { key: emailKey, purpose: 'orders', to: user.email, subject: `Order ${humanOrderId} confirmed`, htmlContent: emailHtml('Order confirmed', `We received your order <strong>${humanOrderId}</strong>. Payment is pending.`) });
+      return { id: reference.id, orderId: humanOrderId, subtotal, deliveryFee, discount: promotion.discount, total: subtotal + deliveryFee - promotion.discount, paymentStatus: 'PENDING', orderStatus: 'PENDING', emailKey };
     });
+    if (result.emailKey) await deliverQueuedEmailInline({ db, key: result.emailKey });
+    delete result.emailKey;
     return response.status(201).json({ order: result });
   } catch (error) { return sendError(response, error); }
 }; }

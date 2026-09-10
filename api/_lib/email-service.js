@@ -45,11 +45,11 @@ export async function deliverQueuedEmail({ db, key, fetchImpl = fetch }) {
   return true;
 }
 
-/** Deliver a bounded batch so a failed message never prevents later messages from sending. */
-export async function drainQueuedEmails({ db, limit = 50, fetchImpl = fetch }) {
-  const pending = await db.collection('emailOutbox').where('status', '==', 'PENDING').orderBy('createdAt', 'asc').limit(limit).get();
-  const results = await Promise.allSettled(pending.docs.map((doc) => deliverQueuedEmail({ db, key: doc.data().key, fetchImpl })));
-  return { found: pending.size, sent: results.filter((result) => result.status === 'fulfilled' && result.value).length, failed: results.filter((result) => result.status === 'rejected').length };
+// Delivery failures must not roll back the business event that created the outbox
+// record. The retained PENDING document is the visible audit trail for staff.
+export async function deliverQueuedEmailInline({ db, key }) {
+  try { return await deliverQueuedEmail({ db, key }); }
+  catch (error) { console.error(`Email delivery failed for outbox record ${emailId(key)}.`, error); return false; }
 }
 
 export const emailHtml = (title, body, options = {}) => {

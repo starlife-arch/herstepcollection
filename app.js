@@ -137,7 +137,7 @@ async function loadAnnouncement() {
     const banner = document.createElement('aside'); banner.className = 'announcement-banner';
     banner.innerHTML = `<p>${announcement.message}</p><a class="text-button" href="${announcement.linkUrl}" target="_blank" rel="noopener noreferrer">${announcement.linkLabel}</a><button class="text-button" type="button" aria-label="Dismiss announcement">Dismiss</button>`;
     banner.querySelector('button').addEventListener('click', () => { sessionStorage.setItem('herstep-announcement-dismissed', 'true'); banner.remove(); });
-    document.body.prepend(banner);
+    document.querySelector('footer').before(banner);
   } catch { /* Announcements must never prevent the storefront from loading. */ }
 }
 

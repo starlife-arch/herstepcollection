@@ -1,7 +1,12 @@
-import './catalogue.js';
-import './cart.js';
-import './dashboard.js';
-import './support.js';
+import { pathname, renderRoute } from './router.js';
+import './widget.js';
+
+renderRoute();
+if (pathname === '/' || pathname === '/shop' || pathname === '/collections' || pathname.startsWith('/category/') || pathname.startsWith('/product/')) import('./catalogue.js');
+if (pathname === '/cart' || pathname === '/checkout') import('./cart.js');
+if (pathname === '/account' || pathname === '/account/orders') import('./dashboard.js');
+if (pathname === '/account/support') import('./support.js');
+if (pathname === '/account/requests') import('./requests.js');
 
 const dialog = document.querySelector('#auth-dialog');
 const trigger = document.querySelector('#account-trigger');
@@ -24,8 +29,12 @@ let authApi;
 let registerMode = false;
 
 document.querySelector('#year').textContent = new Date().getFullYear();
+function renderCartCount() { try { document.querySelector('#cart-count').textContent = String(JSON.parse(localStorage.getItem('herstep-cart-v1') || '[]').reduce((total, item) => total + item.quantity, 0)); } catch { document.querySelector('#cart-count').textContent = '0'; } }
+renderCartCount();
+window.addEventListener('herstep-cart-updated', renderCartCount);
+window.addEventListener('storage', (event) => { if (event.key === 'herstep-cart-v1') renderCartCount(); });
 loadAnnouncement();
-loadHero();
+if (pathname === '/') loadHero();
 trigger.addEventListener('click', async () => { dialog.showModal(); await initialiseAuth(); });
 closeButton.addEventListener('click', () => dialog.close());
 modeButton.addEventListener('click', () => { registerMode = !registerMode; updateMode(); });
@@ -68,7 +77,7 @@ async function initialiseAuth() {
 
 async function renderAccount(user) {
   window.dispatchEvent(new CustomEvent('herstep-auth-state', { detail: { user, authApi } }));
-  if (!user) { trigger.textContent = 'Sign in'; document.querySelector('#admin-link').hidden = true; authContent.hidden = false; accountContent.hidden = true; return; }
+  if (!user) { trigger.textContent = 'Sign in'; clearAdminLink(); authContent.hidden = false; accountContent.hidden = true; return; }
   trigger.textContent = 'My account';
   authContent.hidden = true; accountContent.hidden = false;
   document.querySelector('#account-name').textContent = user.displayName || 'Your HerStep account';
@@ -93,16 +102,29 @@ form.addEventListener('submit', async (event) => {
   finally { button.disabled = false; }
 });
 
-document.querySelector('#sign-out').addEventListener('click', () => authApi.signOut(auth));
+document.querySelector('#sign-out').addEventListener('click', async () => {
+  if (!authApi || !auth) return;
+  await authApi.signOut(auth);
+  dialog.close();
+  window.location.assign('/');
+});
 async function renderAdminLink(user) {
-  const adminLink = document.querySelector('#admin-link');
-  adminLink.hidden = true;
+  clearAdminLink();
   try {
     const firestoreModule = await import('https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js');
     const profile = await firestoreModule.getDoc(firestoreModule.doc(firestoreModule.getFirestore(auth.app), 'users', user.uid));
-    adminLink.hidden = !['ADMIN', 'SUPER_ADMIN'].includes(profile.data()?.role);
+    if (auth.currentUser?.uid !== user.uid) return;
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(profile.data()?.role)) return;
+    // Deliberately create this control only after the trusted profile read has
+    // confirmed a staff role. Customers never receive an admin link in the DOM.
+    const adminLink = document.createElement('a');
+    adminLink.className = 'button button-secondary';
+    adminLink.href = '/admin.html';
+    adminLink.textContent = 'Admin dashboard';
+    document.querySelector('#account-admin-action').append(adminLink);
   } catch { /* The link is convenience-only; server authorization remains authoritative. */ }
 }
+function clearAdminLink() { document.querySelector('#account-admin-action').replaceChildren(); }
 
 async function sendPasswordReset() {
   message.textContent = '';
@@ -129,6 +151,7 @@ function friendlyAuthError(code) {
   const errors = { 'auth/email-already-in-use':'An account already exists for this email address.', 'auth/invalid-email':'Enter a valid email address.', 'auth/weak-password':'Use a password with at least 8 characters.', 'auth/invalid-credential':'Email or password is incorrect.', 'auth/too-many-requests':'Too many attempts. Please wait and try again.' };
   return errors[code] || 'We could not complete that request. Please try again.';
 }
+if (pathname.startsWith('/account') || pathname === '/checkout') initialiseAuth();
 async function loadAnnouncement() {
   if (sessionStorage.getItem('herstep-announcement-dismissed')) return;
   try {
@@ -145,7 +168,7 @@ async function loadHero() {
   try {
     const response = await fetch('/api/hero'); const { hero } = await response.json();
     if (!response.ok || !hero) return;
-    const section = document.querySelector('#storefront-hero');
+    const section = document.querySelector('#storefront-hero'); if (!section) return;
     document.querySelector('#hero-title').textContent = hero.title;
     document.querySelector('#hero-copy').textContent = hero.copy;
     const cta = document.querySelector('#hero-cta'); cta.textContent = hero.ctaLabel; cta.href = hero.ctaUrl;

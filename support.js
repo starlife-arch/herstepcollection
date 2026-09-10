@@ -1,4 +1,3 @@
-const dialog = document.querySelector('#support-dialog');
 const content = document.querySelector('#support-content');
 let user = null;
 let unsubscribe = null;
@@ -9,14 +8,13 @@ const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character
 const stamp = (value) => value ? new Date(value).toLocaleString('en-KE', { dateStyle: 'medium', timeStyle: 'short' }) : 'Just now';
 const messageId = () => crypto.randomUUID().replace(/-/g, '');
 
-window.addEventListener('herstep-auth-state', (event) => { user = event.detail.user; if (!user) unsubscribe?.(); });
-window.addEventListener('herstep-open-support', () => openSupport());
-document.querySelector('#support-trigger').addEventListener('click', openSupport);
-document.querySelector('#support-close').addEventListener('click', () => { unsubscribe?.(); unsubscribe = null; dialog.close(); });
+window.addEventListener('herstep-auth-state', (event) => { user = event.detail.user; if (!user) { unsubscribe?.(); content.innerHTML = '<p>Please sign in to view your support requests.</p>'; } else openSupport(); });
 
 async function openSupport() {
-  dialog.showModal();
-  if (!user) { content.innerHTML = '<p>Please sign in to open or view a support request.</p>'; return; }
+  if (!user) {
+    content.innerHTML = '<p>Please sign in to open or view a support request.</p>';
+    return;
+  }
   await loadTickets();
 }
 
@@ -61,9 +59,15 @@ async function openThread(ticketDocumentId) {
     content.innerHTML = `<section class="support-thread-header"><button class="text-button" id="ticket-back" type="button">Back to tickets</button><div><div><p class="eyebrow">${escapeHtml(ticket.ticketId)}</p><h3>${escapeHtml(ticket.subject)}</h3></div><b class="ticket-status">${escapeHtml(ticket.status)}</b></div></section><div class="support-messages" id="support-messages" aria-live="polite"></div><form class="support-compose" id="support-compose"><label class="sr-only" for="support-message">Message</label><textarea id="support-message" name="message" maxlength="4000" required ${ticket.status === 'CLOSED' ? 'disabled' : ''} placeholder="Write a message"></textarea><p class="form-message" role="alert"></p>${ticket.status === 'CLOSED' ? '<p>This support ticket has been closed.</p>' : '<button class="button" type="submit">Send message</button>'}</form>`;
     content.querySelector('#ticket-back').addEventListener('click', loadTickets);
     const messages = content.querySelector('#support-messages');
+    let receivedInitialSnapshot = false;
+    const loadingTimer = window.setTimeout(() => {
+      if (!receivedInitialSnapshot) messages.innerHTML = '<p class="form-message">Live messages are taking longer than expected. Return to your tickets and try again.</p>';
+    }, 12_000);
     unsubscribe = firestoreApi.onSnapshot(firestoreApi.query(firestoreApi.collection(db, 'supportTickets', ticketDocumentId, 'messages'), firestoreApi.orderBy('createdAt', 'asc')), (snapshot) => {
+      receivedInitialSnapshot = true;
+      window.clearTimeout(loadingTimer);
       messages.innerHTML = snapshot.docs.map((doc) => { const item = doc.data(); const mine = item.senderId === user.uid; return `<article class="chat-message ${mine ? 'chat-message-mine' : 'chat-message-admin'}"><p>${escapeHtml(item.body)}</p><small>${escapeHtml(item.senderRole === 'ADMIN' ? 'HerStep support' : 'You')}<time datetime="${escapeHtml(item.createdAt?.toDate?.()?.toISOString() || '')}">${stamp(item.createdAt?.toDate?.()?.toISOString())}</time></small></article>`; }).join(''); messages.scrollTop = messages.scrollHeight;
-    }, () => { messages.textContent = 'Live messages could not be loaded.'; });
+    }, () => { window.clearTimeout(loadingTimer); messages.textContent = 'Live messages could not be loaded. Please return to your tickets and try again.'; });
     content.querySelector('#support-compose').addEventListener('submit', async (event) => {
       event.preventDefault(); const form = event.currentTarget; const feedback = form.querySelector('.form-message'); const button = form.querySelector('button'); button.disabled = true; button.textContent = 'Sending…';
       try { await request('/api/support/messages', { method: 'POST', body: JSON.stringify({ ticketDocumentId, message: form.message.value, clientMessageId: messageId() }) }); form.reset(); } catch (error) { feedback.textContent = error.message; } finally { button.disabled = false; button.textContent = 'Send message'; }

@@ -2,6 +2,7 @@ import { pathname, renderRoute } from './router.js';
 import './widget.js';
 
 renderRoute();
+window.addEventListener('load', () => window.lucide?.createIcons());
 if (pathname === '/' || pathname === '/shop' || pathname === '/collections' || pathname.startsWith('/category/') || pathname.startsWith('/product/')) import('./catalogue.js');
 if (pathname === '/cart' || pathname === '/checkout') import('./cart.js');
 if (pathname === '/account' || pathname === '/account/orders') import('./dashboard.js');

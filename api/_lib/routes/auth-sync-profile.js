@@ -12,6 +12,9 @@ export default async function handler(request, response) {
       : null;
     const suppliedPhone = request.body?.phoneNumber;
     const phoneNumber = suppliedPhone == null ? null : normalizeKenyanPhone(suppliedPhone);
+    const deliveryDetails = typeof request.body?.deliveryDetails === 'string'
+      ? request.body.deliveryDetails.trim().slice(0, 500)
+      : null;
     const reference = adminDb.collection('users').doc(user.uid);
     const snapshot = await reference.get();
     if (!snapshot.exists) {
@@ -21,6 +24,7 @@ export default async function handler(request, response) {
         email: user.email ?? null,
         displayName: displayName || user.name || null,
         phoneNumber: phoneNumber || normalizeKenyanPhone(user.phone_number),
+        deliveryDetails: deliveryDetails || null,
         marketingConsent: false,
         role: 'CUSTOMER',
         createdAt: FieldValue.serverTimestamp(),
@@ -33,6 +37,7 @@ export default async function handler(request, response) {
         email: user.email ?? snapshot.data().email ?? null,
         ...(displayName ? { displayName } : {}),
         ...(phoneNumber ? { phoneNumber } : {}),
+        ...(deliveryDetails ? { deliveryDetails } : {}),
         ...(typeof request.body?.marketingConsent === 'boolean' ? { marketingConsent: request.body.marketingConsent } : {}),
         updatedAt: FieldValue.serverTimestamp()
       });

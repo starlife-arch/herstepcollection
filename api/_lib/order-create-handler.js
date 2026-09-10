@@ -16,8 +16,14 @@ export function createOrderHandler({ db, requireAuthenticatedUser } = {}) { retu
     const result = await db.runTransaction(async (transaction) => {
       const settingsRef = db.collection('settings').doc('checkout');
       const settingsSnapshot = await transaction.get(settingsRef);
-      const settings = settingsSnapshot.data();
-      if (!settingsSnapshot.exists || !Number.isInteger(settings.deliveryFee) || settings.deliveryFee < 0 || settings.collectionEnabled !== true || (delivery.deliveryMethod === 'DELIVERY' && settings.deliveryEnabled !== true)) throw clientError('That delivery option is unavailable.');
+      const configuredSettings = settingsSnapshot.data() || {};
+      // In-store collection is a fixed business capability, not a browser setting.
+      // Delivery is enabled only by a valid administrator configuration.
+      const deliveryEnabled = configuredSettings.deliveryEnabled === true
+        && Number.isInteger(configuredSettings.deliveryFee)
+        && configuredSettings.deliveryFee >= 0;
+      const settings = { deliveryEnabled, deliveryFee: deliveryEnabled ? configuredSettings.deliveryFee : 0 };
+      if (delivery.deliveryMethod === 'DELIVERY' && !deliveryEnabled) throw clientError('That delivery option is unavailable.');
       const productRefs = cart.map((item) => db.collection('products').doc(item.productId));
       const productSnapshots = await Promise.all(productRefs.map((reference) => transaction.get(reference)));
       const lines = cart.map((item, index) => {
@@ -53,4 +59,3 @@ export function createOrderHandler({ db, requireAuthenticatedUser } = {}) { retu
     return response.status(201).json({ order: result });
   } catch (error) { return sendError(response, error); }
 }; }
-

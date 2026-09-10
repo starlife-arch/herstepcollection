@@ -17,27 +17,27 @@
   <body>
     <a class="skip-link" href="#main-content">Skip to content</a>
     <header class="site-header">
-      <a class="brand" href="/" aria-label="HerStep Collection home">HERSTEP <span>COLLECTION</span></a>
-      <nav aria-label="Primary navigation">
-        <a href="#shop">Shop</a><button class="nav-cart" id="cart-trigger" type="button">Cart <span id="cart-count">0</span></button><a href="#about">Our store</a><button class="nav-link-button" id="support-trigger" type="button">Support</button>
+      <a class="brand" href="/" aria-label="HerStep Collection home">HERSTEP <span>COLLECTION</span><small>Step Into Your Style.</small></a>
+      <nav class="primary-nav" aria-label="Primary navigation">
+        <a href="#shop">Shop</a><a href="#categories">Categories</a><button class="nav-link-button" id="support-trigger" type="button">Support</button>
       </nav>
-      <button class="button button-secondary" id="account-trigger" type="button">Sign in</button>
+      <div class="header-actions">
+        <label class="header-search" for="header-product-search"><span class="sr-only">Search the collection</span><input id="header-product-search" type="search" placeholder="Search styles" autocomplete="off" /></label>
+        <button class="icon-button" id="account-trigger" type="button" aria-label="Open account"><span aria-hidden="true">◯</span><span class="icon-button-label">Account</span></button>
+        <button class="icon-button nav-cart" id="cart-trigger" type="button" aria-label="Open cart"><span aria-hidden="true">Bag</span><span class="cart-badge" id="cart-count">0</span></button>
+      </div>
     </header>
 
     <main id="main-content">
-      <section class="hero" aria-labelledby="hero-title">
-        <div>
+      <section class="hero" id="storefront-hero" aria-labelledby="hero-title">
+        <div class="hero-copy-wrap">
           <p class="eyebrow">Juja Town · Ladies’ footwear</p>
           <h1 id="hero-title">Step into your style.</h1>
-          <p class="hero-copy">A considered collection of shoes selected for everyday confidence, special occasions and every step in between.</p>
-          <a class="button" href="#shop">Explore the collection</a>
+          <p class="hero-copy" id="hero-copy">New arrivals and everyday favourites, selected for your next confident step.</p>
+          <div class="hero-actions"><a class="button" id="hero-cta" href="#shop">Shop the collection</a><a class="hero-text-link" href="#categories">Browse categories</a></div>
         </div>
-        <aside class="hero-panel" aria-label="Store information">
-          <p class="eyebrow">Visit our store</p>
-          <p>Jerry House, near Juja Posta<br />Outside Shop No. 12</p>
-          <a href="tel:+254799021089">+254 799 021 089</a>
-        </aside>
       </section>
+      <section class="category-rail" id="categories" aria-labelledby="categories-title"><div><p class="eyebrow">Browse by mood</p><h2 id="categories-title">Made for every step.</h2></div><div class="category-pills" id="category-pills" aria-label="Product categories"></div></section>
 
       <section class="catalogue" id="shop" aria-labelledby="catalogue-title">
         <div class="section-heading">
@@ -61,11 +61,7 @@
       </section>
     </main>
 
-    <footer id="about">
-      <span>© <span id="year"></span> HerStep Collection</span>
-      <span>Step Into Your Style.</span>
-      <a id="support" href="mailto:herstepcollection@gmail.com">herstepcollection@gmail.com</a>
-    </footer>
+    <footer id="about"><div><a class="brand" href="/">HERSTEP <span>COLLECTION</span></a><p>Step Into Your Style.</p></div><div><strong>Visit us</strong><p>Jerry House, near Juja Posta<br />Outside Shop No. 12, Juja Town</p></div><div><strong>Stay in step</strong><form class="newsletter-form" action="mailto:herstepcollection@gmail.com" method="get"><label class="sr-only" for="newsletter-email">Email address</label><input id="newsletter-email" name="subject" type="email" placeholder="Your email address" required /><button class="button" type="submit">Subscribe</button></form><a id="support" href="mailto:herstepcollection@gmail.com">herstepcollection@gmail.com</a></div><small>© <span id="year"></span> HerStep Collection</small></footer>
 
     <dialog class="auth-dialog" id="auth-dialog" aria-labelledby="auth-title">
       <button class="dialog-close" id="auth-close" type="button" aria-label="Close account dialog">×</button>
@@ -76,14 +72,14 @@
           <label id="name-field" hidden>Full name<input id="auth-name" name="name" autocomplete="name" maxlength="100" /></label>
           <label id="phone-field" hidden>Phone number<input id="auth-phone" name="phone" autocomplete="tel" inputmode="tel" placeholder="+254 7…" /></label>
           <label>Email address<input id="auth-email" name="email" type="email" autocomplete="email" required /></label>
-          <label>Password<input id="auth-password" name="password" type="password" autocomplete="current-password" minlength="8" required /></label>
+          <label>Password<input id="auth-password" name="password" type="password" autocomplete="current-password" minlength="8" required aria-describedby="password-requirements" /></label><label id="password-confirm-field" hidden>Confirm password<input id="auth-password-confirm" name="passwordConfirm" type="password" autocomplete="new-password" minlength="8" /></label><p id="password-requirements" class="password-requirements" hidden>Use 8+ characters with uppercase, lowercase, a number and a symbol.</p>
           <label id="marketing-field" hidden><input id="auth-marketing" name="marketingConsent" type="checkbox" /> Send me offers and updates.</label>
           <p class="form-message" id="auth-message" role="alert" aria-live="polite"></p>
           <button class="button" id="auth-submit" type="submit">Sign in</button>
         </form>
-        <button class="text-button" id="auth-mode" type="button">New to HerStep? Create an account</button>
+        <div class="auth-links"><button class="text-button" id="forgot-password" type="button">Forgot password?</button><button class="text-button" id="auth-mode" type="button">New to HerStep? Create an account</button></div>
       </section>
-      <section id="account-content" hidden><p class="eyebrow">Signed in</p><h2 id="account-name">Your HerStep account</h2><p id="account-email"></p><button class="button" id="dashboard-trigger" type="button">My dashboard</button><button class="button button-secondary" id="sign-out" type="button">Sign out</button></section>
+      <section id="account-content" hidden><p class="eyebrow">Signed in</p><h2 id="account-name">Your HerStep account</h2><p id="account-email"></p><button class="button" id="dashboard-trigger" type="button">My dashboard</button><a class="button button-secondary" id="admin-link" href="/admin.html" hidden>Admin dashboard</a><button class="button button-secondary" id="sign-out" type="button">Sign out</button></section>
     </dialog>
     <dialog class="product-dialog" id="product-dialog" aria-labelledby="product-dialog-title"></dialog>
     <dialog class="cart-dialog" id="cart-dialog" aria-labelledby="cart-title"><button class="dialog-close" type="button" data-close-cart aria-label="Close cart">×</button><p class="eyebrow">Your selection</p><h2 id="cart-title">Shopping cart</h2><div id="cart-lines"></div><p class="cart-subtotal" id="cart-subtotal"></p><button class="button" id="checkout-trigger" type="button">Proceed to checkout</button></dialog>

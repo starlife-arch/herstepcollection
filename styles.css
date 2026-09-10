@@ -54,3 +54,15 @@ footer { max-width:none; display:grid; grid-template-columns:1.1fr 1fr 1.1fr; pa
 @media (max-width:800px) { .admin-app { display:block; }.admin-sidebar { position:fixed; z-index:40; width:260px; height:100dvh; transform:translateX(-100%); transition:transform .2s ease; }.admin-sidebar.is-open { transform:translateX(0); }.admin-main { padding:1.25rem 1rem 3rem; }.admin-menu { display:inline-flex; margin-bottom:.75rem; border:0; background:transparent; color:var(--ink); font:700 .75rem 'DM Sans'; }.admin-topbar { flex-direction:column; }.admin-topbar > div:last-child { width:100%; justify-content:space-between; }.admin-cards,.admin-split,.form-grid { grid-template-columns:1fr; }.admin-row { align-items:flex-start; flex-direction:column; }.inventory-grid { grid-template-columns:repeat(4,1fr); }.admin-thread form { grid-template-columns:1fr; } }
 .password-requirements { margin:-.5rem 0 0; color:var(--muted); font-size:.77rem; }
 .hero { background-image:linear-gradient(90deg,rgba(16,35,63,.95),rgba(16,35,63,.76)),var(--hero-image,none); background-size:cover; background-position:center; }.hero-video { position:absolute; inset:0; z-index:-2; width:100%; height:100%; object-fit:cover; opacity:.42; }
+/* Operations controls keep sensitive actions legible across desktop and mobile. */
+.admin-product-list article { grid-template-columns:58px minmax(0,1fr) auto; }
+.admin-product-list article > .text-button { margin:0; align-self:center; }
+.admin-product-list .admin-media-note { color:var(--muted); font-size:.84rem; margin:0; }
+.admin-ticket-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:.6rem; }
+.admin-ticket-actions select,.order-status-form select,.request-form select { min-height:40px; padding:.45rem; border:1px solid var(--line); background:#fff; color:var(--ink); font:inherit; }
+.order-status-form { display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:.5rem; }
+.order-status-form .form-message { flex-basis:100%; min-height:0; text-align:right; }
+.request-form { min-width:min(100%,360px); }
+.request-form textarea { min-height:72px; padding:.6rem; border:1px solid var(--line); font:inherit; resize:vertical; }
+.announcement-banner { margin-top:0; }
+@media (max-width:800px) { .admin-product-list article { grid-template-columns:58px minmax(0,1fr); }.admin-product-list article > .text-button { grid-column:2; justify-self:start; }.admin-ticket-actions,.order-status-form { justify-content:flex-start; }.order-status-form .form-message { text-align:left; } }

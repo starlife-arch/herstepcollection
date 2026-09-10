@@ -1,7 +1,10 @@
-import './catalogue.js';
-import './cart.js';
-import './dashboard.js';
-import './support.js';
+import { pathname, renderRoute } from './router.js';
+
+renderRoute();
+if (pathname === '/' || pathname === '/shop' || pathname === '/collections' || pathname.startsWith('/category/') || pathname.startsWith('/product/')) import('./catalogue.js');
+if (pathname === '/cart' || pathname === '/checkout') import('./cart.js');
+if (pathname === '/account' || pathname === '/account/orders') import('./dashboard.js');
+if (pathname === '/account/support') import('./support.js');
 
 const dialog = document.querySelector('#auth-dialog');
 const trigger = document.querySelector('#account-trigger');
@@ -24,8 +27,12 @@ let authApi;
 let registerMode = false;
 
 document.querySelector('#year').textContent = new Date().getFullYear();
+function renderCartCount() { try { document.querySelector('#cart-count').textContent = String(JSON.parse(localStorage.getItem('herstep-cart-v1') || '[]').reduce((total, item) => total + item.quantity, 0)); } catch { document.querySelector('#cart-count').textContent = '0'; } }
+renderCartCount();
+window.addEventListener('herstep-cart-updated', renderCartCount);
+window.addEventListener('storage', (event) => { if (event.key === 'herstep-cart-v1') renderCartCount(); });
 loadAnnouncement();
-loadHero();
+if (pathname === '/') loadHero();
 trigger.addEventListener('click', async () => { dialog.showModal(); await initialiseAuth(); });
 closeButton.addEventListener('click', () => dialog.close());
 modeButton.addEventListener('click', () => { registerMode = !registerMode; updateMode(); });
@@ -142,6 +149,7 @@ function friendlyAuthError(code) {
   const errors = { 'auth/email-already-in-use':'An account already exists for this email address.', 'auth/invalid-email':'Enter a valid email address.', 'auth/weak-password':'Use a password with at least 8 characters.', 'auth/invalid-credential':'Email or password is incorrect.', 'auth/too-many-requests':'Too many attempts. Please wait and try again.' };
   return errors[code] || 'We could not complete that request. Please try again.';
 }
+if (pathname.startsWith('/account') || pathname === '/checkout') initialiseAuth();
 async function loadAnnouncement() {
   if (sessionStorage.getItem('herstep-announcement-dismissed')) return;
   try {
@@ -158,7 +166,7 @@ async function loadHero() {
   try {
     const response = await fetch('/api/hero'); const { hero } = await response.json();
     if (!response.ok || !hero) return;
-    const section = document.querySelector('#storefront-hero');
+    const section = document.querySelector('#storefront-hero'); if (!section) return;
     document.querySelector('#hero-title').textContent = hero.title;
     document.querySelector('#hero-copy').textContent = hero.copy;
     const cta = document.querySelector('#hero-cta'); cta.textContent = hero.ctaLabel; cta.href = hero.ctaUrl;

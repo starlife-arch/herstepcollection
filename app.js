@@ -6,6 +6,7 @@ if (pathname === '/' || pathname === '/shop' || pathname === '/collections' || p
 if (pathname === '/cart' || pathname === '/checkout') import('./cart.js');
 if (pathname === '/account' || pathname === '/account/orders') import('./dashboard.js');
 if (pathname === '/account/support') import('./support.js');
+if (pathname === '/account/requests') import('./requests.js');
 
 const dialog = document.querySelector('#auth-dialog');
 const trigger = document.querySelector('#account-trigger');

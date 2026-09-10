@@ -12,10 +12,10 @@ export default async function handler(request, response) {
       : null;
     const suppliedPhone = request.body?.phoneNumber;
     const phoneNumber = suppliedPhone == null ? null : normalizeKenyanPhone(suppliedPhone);
-    if (!phoneNumber && !user.phone_number) return response.status(400).json({ error: 'A valid phone number is required.' });
     const reference = adminDb.collection('users').doc(user.uid);
     const snapshot = await reference.get();
     if (!snapshot.exists) {
+      if (!phoneNumber && !user.phone_number) return response.status(400).json({ error: 'A valid phone number is required.' });
       await reference.set({
         uid: user.uid,
         email: user.email ?? null,

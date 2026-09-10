@@ -29,3 +29,10 @@ test('new product editor tolerates the absence of an inventory object', async ()
   const admin = await source('admin.js');
   assert.match(admin, /product\?\.inventory \|\| \[\]/);
 });
+
+test('payment initiation sends only the server-accepted order identifier', async () => {
+  const cart = await source('cart.js');
+  assert.match(cart, /body:JSON\.stringify\(\{ orderDocumentId:body\.order\.id \}\)/);
+  assert.doesNotMatch(cart, /orderDocumentId:body\.order\.id, phone/);
+  assert.match(cart, /if \(!body\.order\?\.id\)/);
+});

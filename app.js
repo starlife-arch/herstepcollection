@@ -2,6 +2,7 @@ import { pathname, renderRoute } from './router.js';
 import './widget.js';
 
 renderRoute();
+window.addEventListener('load', () => window.lucide?.createIcons());
 if (pathname === '/' || pathname === '/shop' || pathname === '/collections' || pathname.startsWith('/category/') || pathname.startsWith('/product/')) import('./catalogue.js');
 if (pathname === '/cart' || pathname === '/checkout') import('./cart.js');
 if (pathname === '/account' || pathname === '/account/orders') import('./dashboard.js');
@@ -13,20 +14,20 @@ const trigger = document.querySelector('#account-trigger');
 const closeButton = document.querySelector('#auth-close');
 const loading = document.querySelector('#auth-loading');
 const authContent = document.querySelector('#auth-content');
+const profileContent = document.querySelector('#profile-content');
 const accountContent = document.querySelector('#account-content');
 const form = document.querySelector('#auth-form');
+const profileForm = document.querySelector('#profile-form');
 const modeButton = document.querySelector('#auth-mode');
-const nameField = document.querySelector('#name-field');
-const phoneField = document.querySelector('#phone-field');
-const marketingField = document.querySelector('#marketing-field');
 const heading = document.querySelector('#auth-heading');
+const authIntro = document.querySelector('#auth-intro');
 const message = document.querySelector('#auth-message');
 const forgotPasswordButton = document.querySelector('#forgot-password');
 const passwordConfirmField = document.querySelector('#password-confirm-field');
-const passwordRequirements = document.querySelector('#password-requirements');
 let auth;
 let authApi;
 let registerMode = false;
+let completingProfile = false;
 
 document.querySelector('#year').textContent = new Date().getFullYear();
 function renderCartCount() { try { document.querySelector('#cart-count').textContent = String(JSON.parse(localStorage.getItem('herstep-cart-v1') || '[]').reduce((total, item) => total + item.quantity, 0)); } catch { document.querySelector('#cart-count').textContent = '0'; } }
@@ -35,18 +36,19 @@ window.addEventListener('herstep-cart-updated', renderCartCount);
 window.addEventListener('storage', (event) => { if (event.key === 'herstep-cart-v1') renderCartCount(); });
 loadAnnouncement();
 if (pathname === '/') loadHero();
-trigger.addEventListener('click', async () => { dialog.showModal(); await initialiseAuth(); });
+trigger.addEventListener('click', async () => {
+  if (auth?.currentUser) { window.location.assign('/account'); return; }
+  dialog.showModal(); await initialiseAuth();
+});
 closeButton.addEventListener('click', () => dialog.close());
 modeButton.addEventListener('click', () => { registerMode = !registerMode; updateMode(); });
 forgotPasswordButton.addEventListener('click', sendPasswordReset);
+form.password.addEventListener('input', renderPasswordRequirements);
+document.querySelectorAll('[data-password-toggle]').forEach((button) => button.addEventListener('click', () => togglePassword(button)));
 
 function updateMode() {
   heading.textContent = registerMode ? 'Create your account' : 'Welcome back';
-  nameField.hidden = !registerMode;
-  phoneField.hidden = !registerMode;
-  marketingField.hidden = !registerMode;
-  document.querySelector('#auth-name').required = registerMode;
-  document.querySelector('#auth-phone').required = registerMode;
+  authIntro.textContent = registerMode ? 'Create your secure sign-in first. We will collect delivery details in the next step.' : 'Sign in to view orders, delivery details, and support.';
   document.querySelector('#auth-password').autocomplete = registerMode ? 'new-password' : 'current-password';
   document.querySelector('#auth-submit').textContent = registerMode ? 'Create account' : 'Sign in';
   modeButton.textContent = registerMode ? 'Already have an account? Sign in' : 'New to HerStep? Create an account';
@@ -54,6 +56,7 @@ function updateMode() {
   passwordConfirmField.hidden = !registerMode;
   passwordRequirements.hidden = !registerMode;
   document.querySelector('#auth-password-confirm').required = registerMode;
+  renderPasswordRequirements();
   message.textContent = '';
   message.classList.remove('form-message-success');
 }
@@ -77,29 +80,52 @@ async function initialiseAuth() {
 
 async function renderAccount(user) {
   window.dispatchEvent(new CustomEvent('herstep-auth-state', { detail: { user, authApi } }));
-  if (!user) { trigger.textContent = 'Sign in'; clearAdminLink(); authContent.hidden = false; accountContent.hidden = true; return; }
+  if (!user) { trigger.textContent = 'Sign in'; clearAdminLink(); authContent.hidden = false; profileContent.hidden = true; accountContent.hidden = true; return; }
   trigger.textContent = 'My account';
-  authContent.hidden = true; accountContent.hidden = false;
+  if (completingProfile) return;
+  authContent.hidden = true; profileContent.hidden = true; accountContent.hidden = false;
   document.querySelector('#account-name').textContent = user.displayName || 'Your HerStep account';
   document.querySelector('#account-email').textContent = user.email || '';
   await renderAdminLink(user);
-  try { await syncProfile(user); } catch { /* Authentication remains valid even if the initial profile sync is temporarily unavailable. */ }
 }
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault(); message.textContent = '';
   const button = document.querySelector('#auth-submit'); button.disabled = true;
+  button.textContent = registerMode ? 'Creating account…' : 'Signing in…';
   try {
-    const email = form.email.value.trim(); const password = form.password.value;
+    const email = form.identifier.value.trim(); const password = form.password.value;
+    if (!email.includes('@')) throw new Error('Phone-number sign-in is not available for email/password accounts. Use the email address associated with your account.');
     if (registerMode && !isStrongPassword(password)) throw new Error('Use 8+ characters with uppercase, lowercase, a number and a symbol.');
     if (registerMode && password !== form.passwordConfirm.value) throw new Error('Your passwords do not match.');
     if (registerMode) {
       const credential = await authApi.createUserWithEmailAndPassword(auth, email, password);
-      await authApi.updateProfile(credential.user, { displayName: form.name.value.trim() });
-      await syncProfile(credential.user, form.name.value.trim(), form.phone.value.trim(), form.marketingConsent.checked);
+      completingProfile = true;
+      authContent.hidden = true;
+      profileContent.hidden = false;
+      document.querySelector('#profile-name').focus();
     } else { await authApi.signInWithEmailAndPassword(auth, email, password); }
   } catch (error) { message.textContent = error.message || friendlyAuthError(error.code); }
-  finally { button.disabled = false; }
+  finally { button.disabled = false; button.textContent = registerMode ? 'Create account' : 'Sign in'; }
+});
+profileForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const profileMessage = document.querySelector('#profile-message');
+  const button = document.querySelector('#profile-submit');
+  profileMessage.textContent = '';
+  button.disabled = true;
+  button.textContent = 'Saving profile…';
+  try {
+    const user = auth?.currentUser;
+    if (!user) throw new Error('Your sign-in session expired. Please sign in again.');
+    const displayName = profileForm.name.value.trim();
+    await authApi.updateProfile(user, { displayName });
+    await syncProfile(user, displayName, profileForm.phone.value.trim(), profileForm.marketingConsent.checked, profileForm.deliveryDetails.value.trim());
+    completingProfile = false;
+    profileContent.hidden = true;
+    await renderAccount(user);
+  } catch (error) { profileMessage.textContent = error.message || friendlyAuthError(error.code); }
+  finally { button.disabled = false; button.textContent = 'Save and continue'; }
 });
 
 document.querySelector('#sign-out').addEventListener('click', async () => {
@@ -128,8 +154,8 @@ function clearAdminLink() { document.querySelector('#account-admin-action').repl
 
 async function sendPasswordReset() {
   message.textContent = '';
-  const email = form.email.value.trim();
-  if (!email) { message.textContent = 'Enter your email address first, then choose Forgot password.'; form.email.focus(); return; }
+  const email = form.identifier.value.trim();
+  if (!email.includes('@')) { message.textContent = 'Enter the email address associated with your account, then choose Forgot password.'; form.identifier.focus(); return; }
   forgotPasswordButton.disabled = true;
   try {
     await authApi.sendPasswordResetEmail(auth, email);
@@ -140,13 +166,32 @@ async function sendPasswordReset() {
     message.textContent = friendlyAuthError(error.code);
   } finally { forgotPasswordButton.disabled = false; }
 }
-async function syncProfile(user, displayName = '', phoneNumber = null, marketingConsent = false) {
+async function syncProfile(user, displayName = '', phoneNumber = null, marketingConsent = false, deliveryDetails = '') {
   const token = await user.getIdToken();
-  const body = { displayName }; if (phoneNumber) body.phoneNumber = phoneNumber; if (marketingConsent) body.marketingConsent = true;
+  const body = { displayName, marketingConsent }; if (phoneNumber) body.phoneNumber = phoneNumber; if (deliveryDetails) body.deliveryDetails = deliveryDetails;
   const response = await fetch('/api/auth/sync-profile', { method:'POST', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body:JSON.stringify(body) });
-  if (!response.ok) throw new Error('Profile sync failed.');
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || 'Profile sync failed.');
 }
 function isStrongPassword(password) { return password.length >= 8 && /[a-z]/.test(password) && /[A-Z]/.test(password) && /\d/.test(password) && /[^A-Za-z0-9]/.test(password); }
+function renderPasswordRequirements() {
+  const password = form.password.value;
+  const rules = { length: password.length >= 8, upper: /[A-Z]/.test(password), lower: /[a-z]/.test(password), number: /\d/.test(password), symbol: /[^A-Za-z0-9]/.test(password) };
+  document.querySelectorAll('#password-requirements [data-rule]').forEach((item) => {
+    const passed = rules[item.dataset.rule];
+    item.classList.toggle('is-valid', passed);
+    item.classList.toggle('is-invalid', !passed);
+    item.setAttribute('aria-label', `${item.textContent}: ${passed ? 'met' : 'not met'}`);
+  });
+}
+function togglePassword(button) {
+  const input = document.querySelector(`#${button.dataset.passwordToggle}`);
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  button.textContent = show ? 'Hide' : 'Show';
+  button.setAttribute('aria-label', `${show ? 'Hide' : 'Show'} password`);
+  button.setAttribute('aria-pressed', String(show));
+}
 function friendlyAuthError(code) {
   const errors = { 'auth/email-already-in-use':'An account already exists for this email address.', 'auth/invalid-email':'Enter a valid email address.', 'auth/weak-password':'Use a password with at least 8 characters.', 'auth/invalid-credential':'Email or password is incorrect.', 'auth/too-many-requests':'Too many attempts. Please wait and try again.' };
   return errors[code] || 'We could not complete that request. Please try again.';
@@ -180,7 +225,7 @@ async function loadHero() {
 // A form action that points at mailto: is treated as an insecure form target by
 // browsers on HTTPS pages.  Until a consent-aware newsletter provider is wired,
 // acknowledge the address locally rather than submitting it anywhere.
-document.querySelector('#newsletter-form').addEventListener('submit', (event) => {
+document.querySelector('#newsletter-form')?.addEventListener('submit', (event) => {
   event.preventDefault();
   const form = event.currentTarget;
   const feedback = document.querySelector('#newsletter-message');

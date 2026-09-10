@@ -68,7 +68,7 @@ async function initialiseAuth() {
 
 async function renderAccount(user) {
   window.dispatchEvent(new CustomEvent('herstep-auth-state', { detail: { user, authApi } }));
-  if (!user) { trigger.textContent = 'Sign in'; document.querySelector('#admin-link').hidden = true; authContent.hidden = false; accountContent.hidden = true; return; }
+  if (!user) { trigger.textContent = 'Sign in'; clearAdminLink(); authContent.hidden = false; accountContent.hidden = true; return; }
   trigger.textContent = 'My account';
   authContent.hidden = true; accountContent.hidden = false;
   document.querySelector('#account-name').textContent = user.displayName || 'Your HerStep account';
@@ -93,16 +93,29 @@ form.addEventListener('submit', async (event) => {
   finally { button.disabled = false; }
 });
 
-document.querySelector('#sign-out').addEventListener('click', () => authApi.signOut(auth));
+document.querySelector('#sign-out').addEventListener('click', async () => {
+  if (!authApi || !auth) return;
+  await authApi.signOut(auth);
+  dialog.close();
+  window.location.assign('/');
+});
 async function renderAdminLink(user) {
-  const adminLink = document.querySelector('#admin-link');
-  adminLink.hidden = true;
+  clearAdminLink();
   try {
     const firestoreModule = await import('https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js');
     const profile = await firestoreModule.getDoc(firestoreModule.doc(firestoreModule.getFirestore(auth.app), 'users', user.uid));
-    adminLink.hidden = !['ADMIN', 'SUPER_ADMIN'].includes(profile.data()?.role);
+    if (auth.currentUser?.uid !== user.uid) return;
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(profile.data()?.role)) return;
+    // Deliberately create this control only after the trusted profile read has
+    // confirmed a staff role. Customers never receive an admin link in the DOM.
+    const adminLink = document.createElement('a');
+    adminLink.className = 'button button-secondary';
+    adminLink.href = '/admin.html';
+    adminLink.textContent = 'Admin dashboard';
+    document.querySelector('#account-admin-action').append(adminLink);
   } catch { /* The link is convenience-only; server authorization remains authoritative. */ }
 }
+function clearAdminLink() { document.querySelector('#account-admin-action').replaceChildren(); }
 
 async function sendPasswordReset() {
   message.textContent = '';
@@ -153,3 +166,16 @@ async function loadHero() {
     if (hero.videoUrl) { const video = document.createElement('video'); video.src = hero.videoUrl; video.autoplay = true; video.muted = true; video.loop = true; video.playsInline = true; video.className = 'hero-video'; section.prepend(video); }
   } catch { /* The default hero remains available if merchandising settings cannot load. */ }
 }
+
+// A form action that points at mailto: is treated as an insecure form target by
+// browsers on HTTPS pages.  Until a consent-aware newsletter provider is wired,
+// acknowledge the address locally rather than submitting it anywhere.
+document.querySelector('#newsletter-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const feedback = document.querySelector('#newsletter-message');
+  if (!form.email.checkValidity()) { form.reportValidity(); return; }
+  feedback.classList.add('form-message-success');
+  feedback.textContent = 'Thanks — newsletter updates will be available soon.';
+  form.reset();
+});

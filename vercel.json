@@ -21,6 +21,7 @@
     { "src": "/api/admin/broadcast", "dest": "/api/admin.js?route=broadcast" },
     { "src": "/api/admin/dashboard", "dest": "/api/admin.js?route=dashboard" },
     { "src": "/api/admin/data", "dest": "/api/admin.js?route=data" },
+    { "src": "/api/admin/delivery", "dest": "/api/admin.js?route=delivery" },
     { "src": "/api/admin/hero", "dest": "/api/admin.js?route=hero" },
     { "src": "/api/admin/orders", "dest": "/api/admin.js?route=orders" },
     { "src": "/api/admin/requests", "dest": "/api/admin.js?route=requests" },

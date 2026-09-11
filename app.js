@@ -94,6 +94,7 @@ async function renderAccount(user) {
   authContent.hidden = true; profileContent.hidden = true; accountContent.hidden = false;
   document.querySelector('#account-name').textContent = user.displayName || 'Your HerStep account';
   document.querySelector('#account-email').textContent = user.email || '';
+  const verification = document.querySelector('#email-verification-reminder'); verification?.remove(); if (user.email && !user.emailVerified) { const banner = document.createElement('aside'); banner.id = 'email-verification-reminder'; banner.className = 'verification-reminder'; banner.innerHTML = '<strong>Verify your email to pay for orders.</strong><button class="text-button" type="button">Resend verification email</button>'; banner.querySelector('button').addEventListener('click', async () => { await authApi.sendEmailVerification(user); banner.querySelector('button').textContent = 'Verification email sent'; }); accountContent.prepend(banner); }
   await renderAdminLink(user);
 }
 
@@ -108,6 +109,7 @@ form.addEventListener('submit', async (event) => {
     if (registerMode && password !== form.passwordConfirm.value) throw new Error('Your passwords do not match.');
     if (registerMode) {
       const credential = await authApi.createUserWithEmailAndPassword(auth, email, password);
+      await authApi.sendEmailVerification(credential.user);
       completingProfile = true;
       authContent.hidden = true;
       profileContent.hidden = false;
@@ -225,13 +227,31 @@ async function loadAnnouncement() {
 async function loadHero() {
   try {
     const response = await fetch('/api/hero'); const { hero } = await response.json();
-    if (!response.ok || !hero) return;
+    if (!response.ok || !hero?.slides?.length) return;
     const section = document.querySelector('#storefront-hero'); if (!section) return;
-    document.querySelector('#hero-title').textContent = hero.title;
-    document.querySelector('#hero-copy').textContent = hero.copy;
-    const cta = document.querySelector('#hero-cta'); cta.textContent = hero.ctaLabel; cta.href = hero.ctaUrl;
-    if (hero.imageUrl) section.style.setProperty('--hero-image', `url("${hero.imageUrl.replace(/["\\]/g, '')}")`);
-    if (hero.videoUrl) { const video = document.createElement('video'); video.src = hero.videoUrl; video.autoplay = true; video.muted = true; video.loop = true; video.playsInline = true; video.className = 'hero-video'; section.prepend(video); }
+    const mediaHost = section.querySelector('.hero-media'); const title = section.querySelector('#hero-title'); const copy = section.querySelector('#hero-copy'); const cta = section.querySelector('#hero-cta'); const dots = section.querySelector('#hero-dots');
+    let index = 0; let timer; let touchStart = null;
+    const isMobile = () => window.matchMedia('(max-width: 750px)').matches;
+    const show = (next) => {
+      index = (next + hero.slides.length) % hero.slides.length;
+      const slide = hero.slides[index]; const media = isMobile() && slide.mobileMedia ? slide.mobileMedia : slide.media;
+      title.textContent = slide.title; copy.textContent = slide.copy; cta.textContent = slide.ctaLabel; cta.href = slide.ctaUrl;
+      mediaHost.replaceChildren();
+      const node = document.createElement(media.resourceType === 'video' ? 'video' : 'img');
+      if (media.resourceType === 'video') { node.src = media.url; node.muted = true; node.defaultMuted = true; node.loop = true; node.playsInline = true; node.preload = index === 0 ? 'metadata' : 'none'; node.autoplay = true; node.addEventListener('canplay', () => node.play().catch(() => {}), { once:true }); }
+      else { node.src = media.url; node.alt = ''; node.decoding = 'async'; node.fetchPriority = index === 0 ? 'high' : 'low'; }
+      node.className = 'hero-slide-media'; node.style.objectPosition = slide.focalPoint || 'center center'; mediaHost.append(node);
+      dots.querySelectorAll('button').forEach((dot, dotIndex) => { const active = dotIndex === index; dot.classList.toggle('is-active', active); dot.setAttribute('aria-current', String(active)); });
+      window.lucide?.createIcons();
+    };
+    const restart = () => { clearInterval(timer); timer = setInterval(() => show(index + 1), 7000); };
+    dots.replaceChildren(...hero.slides.map((slide, slideIndex) => { const dot = document.createElement('button'); dot.type = 'button'; dot.className = 'hero-carousel-dot'; dot.setAttribute('aria-label', `Show slide ${slideIndex + 1}: ${slide.title}`); dot.addEventListener('click', () => { show(slideIndex); restart(); }); return dot; }));
+    section.querySelector('#hero-previous').addEventListener('click', () => { show(index - 1); restart(); });
+    section.querySelector('#hero-next').addEventListener('click', () => { show(index + 1); restart(); });
+    section.addEventListener('touchstart', (event) => { touchStart = event.changedTouches[0].clientX; }, { passive:true });
+    section.addEventListener('touchend', (event) => { if (touchStart === null) return; const distance = event.changedTouches[0].clientX - touchStart; touchStart = null; if (Math.abs(distance) > 45) { show(index + (distance < 0 ? 1 : -1)); restart(); } }, { passive:true });
+    section.addEventListener('mouseenter', () => clearInterval(timer)); section.addEventListener('mouseleave', restart);
+    show(0); restart();
   } catch { /* The default hero remains available if merchandising settings cannot load. */ }
 }
 

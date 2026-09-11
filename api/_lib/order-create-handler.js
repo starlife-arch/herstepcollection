@@ -3,6 +3,7 @@ import { clientError, methodNotAllowed, sendError } from './http.js';
 import { orderId, validateCart, validateCheckout, validateOrderPromotion } from './order.js';
 import { applyPromoCode } from './promotion-service.js';
 import { enforceRateLimit } from './rate-limit.js';
+import { deliveryFee as resolveDeliveryFee, normalizeDelivery } from './delivery.js';
 import { deliverQueuedEmailInline, queueEmail, orderReceiptEmail } from './email-service.js';
 
 export function createOrderHandler({ db, requireAuthenticatedUser } = {}) { return async function handler(request, response) {
@@ -10,6 +11,7 @@ export function createOrderHandler({ db, requireAuthenticatedUser } = {}) { retu
   try {
     const user = await requireAuthenticatedUser(request);
     enforceRateLimit(`order:${user.uid}`, { limit: 5, windowMs: 60_000 });
+    if (user.email && user.email_verified !== true) throw clientError('Verify your email before creating an order.');
     const cart = validateCart(request.body?.cart);
     const delivery = validateCheckout(request.body?.delivery || {});
     const promoCode = validateOrderPromotion(request.body);
@@ -19,10 +21,8 @@ export function createOrderHandler({ db, requireAuthenticatedUser } = {}) { retu
       const configuredSettings = settingsSnapshot.data() || {};
       // In-store collection is a fixed business capability, not a browser setting.
       // Delivery is enabled only by a valid administrator configuration.
-      const deliveryEnabled = configuredSettings.deliveryEnabled === true
-        && Number.isInteger(configuredSettings.deliveryFee)
-        && configuredSettings.deliveryFee >= 0;
-      const settings = { deliveryEnabled, deliveryFee: deliveryEnabled ? configuredSettings.deliveryFee : 0 };
+      const settings = normalizeDelivery(configuredSettings);
+      const deliveryEnabled = settings.deliveryEnabled;
       if (delivery.deliveryMethod === 'DELIVERY' && !deliveryEnabled) throw clientError('That delivery option is unavailable.');
       const productRefs = cart.map((item) => db.collection('products').doc(item.productId));
       const productSnapshots = await Promise.all(productRefs.map((reference) => transaction.get(reference)));
@@ -36,7 +36,7 @@ export function createOrderHandler({ db, requireAuthenticatedUser } = {}) { retu
         return { productId: snapshot.id, name: product.name, sku: product.sku, categoryId: product.categoryId || null, size: item.size, quantity: item.quantity, unitPrice, lineTotal: unitPrice * item.quantity, image: product.images?.[0]?.url || null, inventoryIndex, product, reference: productRefs[index] };
       });
       const subtotal = lines.reduce((sum, item) => sum + item.lineTotal, 0);
-      const deliveryFee = delivery.deliveryMethod === 'DELIVERY' ? settings.deliveryFee : 0;
+      const deliveryFee = delivery.deliveryMethod === 'DELIVERY' ? resolveDeliveryFee(settings, delivery.location) : 0;
       const year = new Date().getUTCFullYear();
       const counterRef = db.collection('orderCounters').doc(String(year));
       // Firestore requires every transaction read to finish before its first write.

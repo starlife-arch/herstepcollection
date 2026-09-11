@@ -8,6 +8,7 @@ export default (request, response) => dispatchRoute(request, response, {
   hero: lazyRoute(() => import('./_lib/routes/admin-hero.js')),
   dashboard: lazyRoute(() => import('./_lib/routes/admin-dashboard.js')),
   data: lazyRoute(() => import('./_lib/routes/admin-data.js')),
+  delivery: lazyRoute(() => import('./_lib/routes/admin-delivery.js')),
   orders: lazyRoute(() => import('./_lib/routes/admin-orders.js')),
   requests: lazyRoute(() => import('./_lib/routes/admin-requests.js'))
 });

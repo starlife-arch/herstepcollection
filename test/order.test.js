@@ -30,7 +30,7 @@ test('creates a promo-code order when the actual handler transaction enforces al
   ]);
   let generated = 0; const ref = (path) => ({ path, id: path.split('/').at(-1) });
   const db = { collection(name) { return { doc(id) { return ref(`${name}/${id || `generated-${++generated}`}`); } }; }, async runTransaction(work) { let wrote = false; const tx = { async get(reference) { if (wrote) throw new Error('Firestore transaction read occurred after a write'); const data = documents.get(reference.path); return { exists: data !== undefined, id: reference.id, data: () => data }; }, set(reference, data, options) { wrote = true; documents.set(reference.path, options?.merge ? { ...documents.get(reference.path), ...data } : data); }, update(reference, data) { wrote = true; documents.set(reference.path, { ...documents.get(reference.path), ...data }); }, create(reference, data) { wrote = true; if (documents.has(reference.path)) throw new Error('duplicate'); documents.set(reference.path, data); } }; return work(tx); } };
-  const handler = createOrderHandler({ db, requireAuthenticatedUser: async () => ({ uid: 'customer-1', email: 'customer@example.test' }) });
+  const handler = createOrderHandler({ db, requireAuthenticatedUser: async () => ({ uid: 'customer-1', email: 'customer@example.test', email_verified: true }) });
   const response = { setHeader() {}, status(code) { this.statusCode = code; return this; }, json(body) { this.body = body; return this; } };
   await handler({ method: 'POST', body: { cart: [{ productId: 'product-12345678', size: '38', quantity: 1 }], promoCode: 'WELCOME10', delivery: { fullName: 'Amina Wanjiku', phone: '0799021089', deliveryMethod: 'COLLECTION' } } }, response);
   assert.equal(response.statusCode, 201);

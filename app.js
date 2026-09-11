@@ -94,6 +94,7 @@ async function renderAccount(user) {
   authContent.hidden = true; profileContent.hidden = true; accountContent.hidden = false;
   document.querySelector('#account-name').textContent = user.displayName || 'Your HerStep account';
   document.querySelector('#account-email').textContent = user.email || '';
+  const verification = document.querySelector('#email-verification-reminder'); verification?.remove(); if (user.email && !user.emailVerified) { const banner = document.createElement('aside'); banner.id = 'email-verification-reminder'; banner.className = 'verification-reminder'; banner.innerHTML = '<strong>Verify your email to pay for orders.</strong><button class="text-button" type="button">Resend verification email</button>'; banner.querySelector('button').addEventListener('click', async () => { await authApi.sendEmailVerification(user); banner.querySelector('button').textContent = 'Verification email sent'; }); accountContent.prepend(banner); }
   await renderAdminLink(user);
 }
 
@@ -108,6 +109,7 @@ form.addEventListener('submit', async (event) => {
     if (registerMode && password !== form.passwordConfirm.value) throw new Error('Your passwords do not match.');
     if (registerMode) {
       const credential = await authApi.createUserWithEmailAndPassword(auth, email, password);
+      await authApi.sendEmailVerification(credential.user);
       completingProfile = true;
       authContent.hidden = true;
       profileContent.hidden = false;

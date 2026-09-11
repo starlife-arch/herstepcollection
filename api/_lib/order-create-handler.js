@@ -11,6 +11,7 @@ export function createOrderHandler({ db, requireAuthenticatedUser } = {}) { retu
   try {
     const user = await requireAuthenticatedUser(request);
     enforceRateLimit(`order:${user.uid}`, { limit: 5, windowMs: 60_000 });
+    if (user.email && user.email_verified !== true) throw clientError('Verify your email before creating an order.');
     const cart = validateCart(request.body?.cart);
     const delivery = validateCheckout(request.body?.delivery || {});
     const promoCode = validateOrderPromotion(request.body);

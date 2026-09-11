@@ -20,8 +20,8 @@ test('customer workspace exposes order, payment, support, request, and sign-out 
 test('collection checkout stays server-authoritative and works without an optional delivery document', async () => {
   const [config, orderHandler] = await Promise.all([source('api/_lib/routes/checkout-config.js'), source('api/_lib/order-create-handler.js')]);
   assert.match(config, /collectionEnabled: true/);
-  assert.match(config, /const deliveryEnabled = settings\.deliveryEnabled === true/);
-  assert.match(orderHandler, /const settings = \{ deliveryEnabled, deliveryFee: deliveryEnabled \? configuredSettings\.deliveryFee : 0 \}/);
+  assert.match(config, /const delivery = normalizeDelivery\(settings\)/);
+  assert.match(orderHandler, /const settings = normalizeDelivery\(configuredSettings\)/);
   assert.match(orderHandler, /delivery\.deliveryMethod === 'DELIVERY' && !deliveryEnabled/);
 });
 

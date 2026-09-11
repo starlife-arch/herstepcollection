@@ -27,6 +27,7 @@ footer { border-top:1px solid var(--line); padding-top:1.5rem!important; padding
 
 /* Storefront redesign */
 body { background:#f8f8f7; }
+img,video { max-width:100%; } .product-detail-main,.hero-video { width:100%; height:auto; } .hero-video { height:100%; }
 .site-header { position:sticky; top:0; z-index:20; max-width:none; min-height:78px; background:rgba(248,248,247,.96); border-bottom:1px solid var(--line); backdrop-filter:blur(14px); }
 .site-header > *:first-child { margin-left:max(0px, calc((100vw - 1200px)/2)); }.site-header > *:last-child { margin-right:max(0px, calc((100vw - 1200px)/2)); }
 .brand { display:grid; gap:0; line-height:1; }.brand small { margin-top:.36rem; color:var(--muted); font:500 .57rem 'DM Sans'; letter-spacing:.13em; text-transform:uppercase; }.primary-nav { gap:1.5rem; }.primary-nav a,.nav-link-button { font-weight:600; color:var(--ink); }

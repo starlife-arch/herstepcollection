@@ -18,6 +18,7 @@
     { "src": "/api/admin/announcement", "dest": "/api/admin.js?route=announcement" },
     { "src": "/api/admin/audit-logs", "dest": "/api/admin.js?route=audit-logs" },
     { "src": "/api/admin/brevo-contacts", "dest": "/api/admin.js?route=brevo-contacts" },
+    { "src": "/api/admin/broadcast", "dest": "/api/admin.js?route=broadcast" },
     { "src": "/api/admin/dashboard", "dest": "/api/admin.js?route=dashboard" },
     { "src": "/api/admin/data", "dest": "/api/admin.js?route=data" },
     { "src": "/api/admin/hero", "dest": "/api/admin.js?route=hero" },

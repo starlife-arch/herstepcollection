@@ -94,6 +94,7 @@ async function renderAccount(user) {
   authContent.hidden = true; profileContent.hidden = true; accountContent.hidden = false;
   document.querySelector('#account-name').textContent = user.displayName || 'Your HerStep account';
   document.querySelector('#account-email').textContent = user.email || '';
+  if (user.email && !user.emailVerified) { await user.reload(); }
   const verification = document.querySelector('#email-verification-reminder'); verification?.remove(); if (user.email && !user.emailVerified) { const banner = document.createElement('aside'); banner.id = 'email-verification-reminder'; banner.className = 'verification-reminder'; banner.innerHTML = '<strong>Verify your email to pay for orders.</strong><button class="text-button" type="button">Resend verification email</button>'; banner.querySelector('button').addEventListener('click', async () => { await authApi.sendEmailVerification(user); banner.querySelector('button').textContent = 'Verification email sent'; }); accountContent.prepend(banner); }
   await renderAdminLink(user);
 }

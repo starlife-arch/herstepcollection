@@ -40,6 +40,7 @@ trigger.addEventListener('click', async () => {
   if (auth?.currentUser) { window.location.assign('/account'); return; }
   dialog.showModal(); await initialiseAuth();
 });
+document.querySelector('#nav-sign-in')?.addEventListener('click', () => trigger.click());
 closeButton.addEventListener('click', () => dialog.close());
 modeButton.addEventListener('click', () => { registerMode = !registerMode; updateMode(); });
 forgotPasswordButton.addEventListener('click', sendPasswordReset);

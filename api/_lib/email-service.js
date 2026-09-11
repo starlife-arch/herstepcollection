@@ -77,3 +77,14 @@ export const emailHtml = (title, body, options = {}) => {
   </td></tr></table>
 </body></html>`;
 };
+
+const escapeEmail = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[character]);
+const emailMoney = (value) => `KSh ${Number(value || 0).toLocaleString('en-KE')}`;
+
+export function orderReceiptEmail(order, status = order.paymentStatus || 'PENDING') {
+  const colour = { PAID:'#1f6a53', FAILED:'#b42318', CANCELLED:'#b42318', TIMEOUT:'#b42318', PENDING:'#a25f20' }[status] || '#40516a';
+  const delivery = order.delivery?.deliveryMethod === 'DELIVERY' ? `Delivery — ${order.delivery.location || 'Location to be confirmed'}` : 'Pickup at shop — Jerry House, near Juja Posta, Juja Town';
+  const rows = (order.items || []).map((item) => `<tr><td style="padding:9px;border-bottom:1px solid #dce2e9;">${escapeEmail(item.name)}<br><small>Size ${escapeEmail(item.size)}</small></td><td style="padding:9px;border-bottom:1px solid #dce2e9;text-align:center;">${escapeEmail(item.quantity)}</td><td style="padding:9px;border-bottom:1px solid #dce2e9;text-align:right;">${emailMoney(item.unitPrice)}</td><td style="padding:9px;border-bottom:1px solid #dce2e9;text-align:right;">${emailMoney(item.lineTotal)}</td></tr>`).join('');
+  const body = `<p style="margin-top:0;">Hello ${escapeEmail(order.delivery?.fullName || 'Customer')},</p><p><strong style="color:${colour};">Payment status: ${escapeEmail(status)}</strong></p><p>Order <strong>${escapeEmail(order.orderId)}</strong> · ${escapeEmail(new Date().toLocaleDateString('en-KE'))}</p><p><strong>Delivery:</strong> ${escapeEmail(delivery)}<br><strong>Phone:</strong> ${escapeEmail(order.delivery?.phone || '—')}</p><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;font-size:14px;"><thead><tr><th align="left">Item</th><th>Qty</th><th align="right">Unit price</th><th align="right">Total</th></tr></thead><tbody>${rows}</tbody></table><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:14px;font-size:14px;"><tr><td>Subtotal</td><td align="right">${emailMoney(order.subtotal)}</td></tr>${order.discount ? `<tr><td>Promo ${escapeEmail(order.promoCode || '')}</td><td align="right">−${emailMoney(order.discount)}</td></tr>` : ''}<tr><td>Delivery fee</td><td align="right">${emailMoney(order.deliveryFee)}</td></tr><tr><td style="padding-top:8px;font-size:17px;font-weight:700;">Total</td><td align="right" style="padding-top:8px;font-size:17px;font-weight:700;">${emailMoney(order.total)}</td></tr></table>`;
+  return emailHtml(`Order ${order.orderId}`, body, { ctaLabel:'View your order', ctaUrl:'https://herstepcollection.com/account/orders' });
+}

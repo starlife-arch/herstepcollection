@@ -24,6 +24,7 @@ const authIntro = document.querySelector('#auth-intro');
 const message = document.querySelector('#auth-message');
 const forgotPasswordButton = document.querySelector('#forgot-password');
 const passwordConfirmField = document.querySelector('#password-confirm-field');
+const passwordRequirements = document.querySelector('#password-requirements');
 let auth;
 let authApi;
 let registerMode = false;
@@ -50,6 +51,9 @@ document.querySelectorAll('[data-password-toggle]').forEach((button) => button.a
 function updateMode() {
   heading.textContent = registerMode ? 'Create your account' : 'Welcome back';
   authIntro.textContent = registerMode ? 'Create your secure sign-in first. We will collect delivery details in the next step.' : 'Sign in to view orders, delivery details, and support.';
+  form.identifier.closest('label').firstChild.textContent = registerMode ? 'Email address' : 'Email address or phone number';
+  document.querySelector('#auth-identifier-help').textContent = registerMode ? 'Use an email address to create your account. Your phone number is collected next.' : 'Use the email address associated with your account.';
+  form.identifier.inputMode = registerMode ? 'email' : 'text';
   document.querySelector('#auth-password').autocomplete = registerMode ? 'new-password' : 'current-password';
   document.querySelector('#auth-submit').textContent = registerMode ? 'Create account' : 'Sign in';
   modeButton.textContent = registerMode ? 'Already have an account? Sign in' : 'New to HerStep? Create an account';
@@ -75,13 +79,16 @@ async function initialiseAuth() {
     auth = authApi.getAuth(initializeApp(config));
     authApi.onAuthStateChanged(auth, renderAccount);
     loading.hidden = true;
+    registerMode = false;
+    updateMode();
     authContent.hidden = false;
   } catch (error) { loading.querySelector('p:last-child').textContent = error.message; }
 }
 
 async function renderAccount(user) {
-  window.dispatchEvent(new CustomEvent('herstep-auth-state', { detail: { user, authApi } }));
-  if (!user) { trigger.textContent = 'Sign in'; clearAdminLink(); authContent.hidden = false; profileContent.hidden = true; accountContent.hidden = true; return; }
+  window.herstepAuthState = { user, authApi };
+  window.dispatchEvent(new CustomEvent('herstep-auth-state', { detail: window.herstepAuthState }));
+  if (!user) { trigger.textContent = 'Sign in'; clearAdminLink(); registerMode = false; updateMode(); authContent.hidden = false; profileContent.hidden = true; accountContent.hidden = true; return; }
   trigger.textContent = 'My account';
   if (completingProfile) return;
   authContent.hidden = true; profileContent.hidden = true; accountContent.hidden = false;
@@ -124,6 +131,10 @@ profileForm.addEventListener('submit', async (event) => {
     await syncProfile(user, displayName, profileForm.phone.value.trim(), profileForm.marketingConsent.checked, profileForm.deliveryDetails.value.trim());
     completingProfile = false;
     profileContent.hidden = true;
+    // Firebase has already authenticated this user; republish the resolved session
+    // so modules loaded before the auth listener (notably checkout) cannot retain null.
+    window.herstepAuthState = { user: auth.currentUser, authApi };
+    window.dispatchEvent(new CustomEvent('herstep-auth-state', { detail: window.herstepAuthState }));
     await renderAccount(user);
   } catch (error) { profileMessage.textContent = error.message || friendlyAuthError(error.code); }
   finally { button.disabled = false; button.textContent = 'Save and continue'; }
@@ -198,6 +209,7 @@ function friendlyAuthError(code) {
   return errors[code] || 'We could not complete that request. Please try again.';
 }
 if (pathname.startsWith('/account') || pathname === '/checkout') initialiseAuth();
+if (pathname !== '/') document.querySelector('.footer-home-only')?.remove();
 async function loadAnnouncement() {
   if (sessionStorage.getItem('herstep-announcement-dismissed')) return;
   try {

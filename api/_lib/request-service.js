@@ -24,9 +24,10 @@ export function validateCustomerRequest(input, type) {
 export async function createCustomerRequest({ db, customerId, type, input }) {
   const payload = validateCustomerRequest(input, type);
   return db.runTransaction(async (transaction) => {
+    const customer = await transaction.get(db.collection('users').doc(customerId));
     if (payload.orderDocumentId) { const order = await transaction.get(db.collection('orders').doc(payload.orderDocumentId)); if (!order.exists) throw clientError('Order not found.', 404); if (order.data().customerId !== customerId) throw clientError('You are not allowed to link that order.', 403); }
     const ref = db.collection(type === 'DISCOUNT' ? 'discountRequests' : 'bulkOrderRequests').doc();
-    transaction.create(ref, { ...payload, customerId, type, status: 'PENDING', adminResponse: null, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() });
+    transaction.create(ref, { ...payload, customerId, customerName:customer.data()?.displayName || null, customerEmail:customer.data()?.email || null, type, status: 'PENDING', adminResponse: null, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() });
     return { id: ref.id, status: 'PENDING' };
   });
 }

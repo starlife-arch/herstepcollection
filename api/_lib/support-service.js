@@ -25,7 +25,7 @@ export async function createSupportTicket({ db, customerId, input }) {
     const counterRef = db.collection('counters').doc('supportTickets'); const counterSnapshot = await transaction.get(counterRef);
     const sequence = (counterSnapshot.exists ? counterSnapshot.data().sequence : 0) + 1;
     const ticketRef = db.collection('supportTickets').doc(); const messageRef = ticketRef.collection('messages').doc(ticketInput.clientMessageId);
-    const ticket = { ticketId: ticketId(sequence), customerId, subject: ticketInput.subject, orderDocumentId: ticketInput.orderDocumentId, status: 'OPEN', lastMessage: ticketInput.message, lastMessageAt: FieldValue.serverTimestamp(), lastMessageSenderRole: 'CUSTOMER', hasUnreadAdminMessages: true, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() };
+    const ticket = { ticketId: ticketId(sequence), customerId, customerName:customer.data()?.displayName || null, customerEmail:customer.data()?.email || null, subject: ticketInput.subject, orderDocumentId: ticketInput.orderDocumentId, status: 'OPEN', lastMessage: ticketInput.message, lastMessageAt: FieldValue.serverTimestamp(), lastMessageSenderRole: 'CUSTOMER', hasUnreadAdminMessages: true, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() };
     transaction.set(counterRef, { sequence, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     transaction.create(ticketRef, ticket);
     transaction.create(messageRef, { senderId: customerId, senderRole: 'CUSTOMER', body: ticketInput.message, createdAt: FieldValue.serverTimestamp() });

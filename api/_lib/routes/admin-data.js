@@ -8,7 +8,7 @@ export default async function handler(request, response) {
     const resource = request.query?.resource;
     if (resource === 'customers') {
       const snapshot = await adminDb.collection('users').orderBy('createdAt', 'desc').limit(100).get();
-      return response.status(200).json({ customers: snapshot.docs.map((doc) => { const user = doc.data(); return { id: doc.id, displayName:user.displayName || null, email:user.email || null, phoneNumber:user.phoneNumber || null, role:user.role || 'CUSTOMER', createdAt:user.createdAt?.toDate?.().toISOString() || null }; }) });
+      return response.status(200).json({ customers: snapshot.docs.map((doc) => { const user = doc.data(); return { id: doc.id, displayName:user.displayName || null, email:user.email || null, phoneNumber:user.phoneNumber || null, deliveryDetails:user.deliveryDetails || null, marketingConsent:user.marketingConsent === true, role:user.role || 'CUSTOMER', createdAt:user.createdAt?.toDate?.().toISOString() || null }; }) });
     }
     if (resource === 'inventory') {
       const [products, logs] = await Promise.all([adminDb.collection('products').orderBy('updatedAt', 'desc').limit(100).get(), adminDb.collection('inventoryLogs').orderBy('createdAt', 'desc').limit(100).get()]);

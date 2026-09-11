@@ -24,6 +24,7 @@ const authIntro = document.querySelector('#auth-intro');
 const message = document.querySelector('#auth-message');
 const forgotPasswordButton = document.querySelector('#forgot-password');
 const passwordConfirmField = document.querySelector('#password-confirm-field');
+const passwordRequirements = document.querySelector('#password-requirements');
 let auth;
 let authApi;
 let registerMode = false;

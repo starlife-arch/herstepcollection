@@ -8,14 +8,12 @@
     { "src": "api/payments.js", "use": "@vercel/node" },
     { "src": "api/support.js", "use": "@vercel/node" },
     { "src": "api/requests.js", "use": "@vercel/node" },
-    { "src": "api/cron/send-emails.js", "use": "@vercel/node" },
     { "src": "*.html", "use": "@vercel/static" },
     { "src": "*.js", "use": "@vercel/static" },
     { "src": "*.css", "use": "@vercel/static" },
     { "src": "*.json", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/api/cron/send-emails", "dest": "/api/cron/send-emails.js" },
     { "src": "/api/admin/analytics", "dest": "/api/admin.js?route=analytics" },
     { "src": "/api/admin/announcement", "dest": "/api/admin.js?route=announcement" },
     { "src": "/api/admin/audit-logs", "dest": "/api/admin.js?route=audit-logs" },
@@ -58,6 +56,5 @@
     { "src": "/api/requests/discount", "dest": "/api/requests.js?route=discount" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
-  ],
-  "crons": [{ "path": "/api/cron/send-emails", "schedule": "*/2 * * * *" }]
+  ]
 }

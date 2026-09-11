@@ -24,5 +24,5 @@ test('duplicate product flow pre-fills a new product form and posts copied Cloud
   assert.match(admin, /data-duplicate-product/);
   assert.match(admin, /showProductForm\([^\n]+\{ duplicate:true \}\)/);
   assert.match(admin, /data-source-images/);
-  assert.match(admin, /else if \(form\.dataset\.sourceImages\) images = JSON\.parse\(form\.dataset\.sourceImages\)/);
+  assert.match(admin, /form\.dataset\.sourceImages\) \{ const file = form\.image\.files\[0\]; images = file \? \[await uploadImage\(file, form\.name\.value\)\] : JSON\.parse\(form\.dataset\.sourceImages\)/);
 });

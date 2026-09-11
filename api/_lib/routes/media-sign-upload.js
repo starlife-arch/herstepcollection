@@ -12,6 +12,7 @@ export default async function handler(request, response) {
   try {
     await requireAdmin(request);
     const resourceType = request.body?.resourceType;
+    const purpose = request.body?.purpose === 'hero' ? 'hero' : 'products';
     const config = MEDIA[resourceType];
     const fileName = typeof request.body?.fileName === 'string' ? request.body.fileName.trim() : '';
     const bytes = request.body?.bytes;
@@ -27,7 +28,7 @@ export default async function handler(request, response) {
       throw error;
     }
     const timestamp = Math.floor(Date.now() / 1000);
-    const folder = `herstep/products/${resourceType}s`;
+    const folder = `herstep/${purpose}/${resourceType}s`;
     const publicId = `${Date.now()}-${crypto.randomUUID()}`;
     const allowedFormats = config.formats.join(',');
     const signaturePayload = `allowed_formats=${allowedFormats}&folder=${folder}&public_id=${publicId}&timestamp=${timestamp}${apiSecret}`;

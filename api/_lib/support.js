@@ -46,7 +46,7 @@ export function validateTicketStatus(input) {
 export function ticketId(sequence) { return `SUP-${String(sequence).padStart(6, '0')}`; }
 
 export function ticketResponse(id, ticket) {
-  return { id, ticketId: ticket.ticketId, subject: ticket.subject, status: ticket.status, orderDocumentId: ticket.orderDocumentId || null, customerId: ticket.customerId, lastMessage: ticket.lastMessage || null, lastMessageAt: ticket.lastMessageAt?.toDate?.().toISOString() || null, createdAt: ticket.createdAt?.toDate?.().toISOString() || null, updatedAt: ticket.updatedAt?.toDate?.().toISOString() || null, hasUnreadAdminMessages: ticket.hasUnreadAdminMessages === true };
+  return { id, ticketId: ticket.ticketId, subject: ticket.subject, status: ticket.status, orderDocumentId: ticket.orderDocumentId || null, customerId: ticket.customerId, customerName:ticket.customerName || null, customerEmail:ticket.customerEmail || null, lastMessage: ticket.lastMessage || null, lastMessageAt: ticket.lastMessageAt?.toDate?.().toISOString() || null, createdAt: ticket.createdAt?.toDate?.().toISOString() || null, updatedAt: ticket.updatedAt?.toDate?.().toISOString() || null, hasUnreadAdminMessages: ticket.hasUnreadAdminMessages === true };
 }
 
 export function messageResponse(id, message) {

@@ -78,6 +78,8 @@ async function initialiseAuth() {
     auth = authApi.getAuth(initializeApp(config));
     authApi.onAuthStateChanged(auth, renderAccount);
     loading.hidden = true;
+    registerMode = false;
+    updateMode();
     authContent.hidden = false;
   } catch (error) { loading.querySelector('p:last-child').textContent = error.message; }
 }
@@ -85,7 +87,7 @@ async function initialiseAuth() {
 async function renderAccount(user) {
   window.herstepAuthState = { user, authApi };
   window.dispatchEvent(new CustomEvent('herstep-auth-state', { detail: window.herstepAuthState }));
-  if (!user) { trigger.textContent = 'Sign in'; clearAdminLink(); authContent.hidden = false; profileContent.hidden = true; accountContent.hidden = true; return; }
+  if (!user) { trigger.textContent = 'Sign in'; clearAdminLink(); registerMode = false; updateMode(); authContent.hidden = false; profileContent.hidden = true; accountContent.hidden = true; return; }
   trigger.textContent = 'My account';
   if (completingProfile) return;
   authContent.hidden = true; profileContent.hidden = true; accountContent.hidden = false;

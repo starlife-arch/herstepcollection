@@ -1,7 +1,7 @@
 import { clientError } from './http.js';
 
 const PRODUCT_STATUSES = new Set(['DRAFT', 'ACTIVE', 'ARCHIVED']);
-const SIZES = new Set(['35', '36', '37', '38', '39', '40', '41', '42']);
+const SIZES = new Set(['30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45']);
 
 function requiredString(value, label, maxLength) {
   if (typeof value !== 'string' || !value.trim()) throw clientError(`${label} is required.`);
@@ -33,7 +33,7 @@ export function validateProduct(input, existing = {}) {
   const seenSizes = new Set();
   const inventory = source.inventory.map((item) => {
     const size = String(item?.size ?? '');
-    if (!SIZES.has(size) || seenSizes.has(size)) throw clientError('Inventory sizes must be unique and between 35 and 42.');
+    if (!SIZES.has(size) || seenSizes.has(size)) throw clientError('Inventory sizes must be unique and between 30 and 45.');
     seenSizes.add(size);
     return { size, quantity: nonNegativeInteger(item.quantity, `Size ${size} quantity`) };
   }).sort((a, b) => Number(a.size) - Number(b.size));

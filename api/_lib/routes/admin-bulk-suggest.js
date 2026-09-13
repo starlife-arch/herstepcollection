@@ -1,5 +1,64 @@
 import { requireAdmin } from '../firebase-admin.js';
+import { cleanBulkSuggestion } from '../bulk-suggestion-validation.js';
 import { clientError, methodNotAllowed, sendError } from '../http.js';
+
+const GEMINI_MIN_INTERVAL_MS = 4_100;
+const GEMINI_RATE_LIMIT_RETRIES = 3;
+let nextGeminiRequestAt = 0;
+
+const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+async function paceGemini() {
+  const now = Date.now();
+  const delay = Math.max(0, nextGeminiRequestAt - now);
+  nextGeminiRequestAt = Math.max(now, nextGeminiRequestAt) + GEMINI_MIN_INTERVAL_MS;
+  if (delay) await wait(delay);
+}
+
+function imageMimeType(contentType, imageUrl) {
+  if (/^image\/(jpeg|png|webp)$/i.test(contentType || '')) return contentType.split(';')[0];
+  if (/\.png(?:$|\?)/i.test(imageUrl)) return 'image/png';
+  if (/\.webp(?:$|\?)/i.test(imageUrl)) return 'image/webp';
+  return 'image/jpeg';
+}
+
+async function geminiSuggestion({ imageUrl, prompt }) {
+  const imageResponse = await fetch(imageUrl);
+  if (!imageResponse.ok) throw new Error('The uploaded image is unavailable to Gemini.');
+  const imageBytes = Buffer.from(await imageResponse.arrayBuffer()).toString('base64');
+  const mimeType = imageMimeType(imageResponse.headers.get('content-type'), imageUrl);
+  const model = process.env.GEMINI_VISION_MODEL || 'gemini-2.0-flash';
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`;
+  const request = () => fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json' },
+    body: JSON.stringify({
+      contents: [{ role:'user', parts:[{ text:prompt }, { inlineData:{ mimeType, data:imageBytes } }] }],
+      generationConfig: { responseMimeType:'application/json' }
+    })
+  });
+  for (let attempt = 0; attempt <= GEMINI_RATE_LIMIT_RETRIES; attempt += 1) {
+    await paceGemini();
+    const result = await request();
+    if (result.ok) {
+      const payload = await result.json();
+      const text = payload.candidates?.[0]?.content?.parts?.find((part) => typeof part.text === 'string')?.text || '{}';
+      try { return JSON.parse(text); } catch { return {}; }
+    }
+    if (result.status !== 429 || attempt === GEMINI_RATE_LIMIT_RETRIES) throw new Error(`Gemini request failed (${result.status}).`);
+    const retryAfter = Number(result.headers.get('retry-after'));
+    await wait(Number.isFinite(retryAfter) ? retryAfter * 1_000 : 1_000 * 2 ** attempt);
+  }
+  return {};
+}
+
+async function openAiSuggestion({ imageUrl, prompt }) {
+  const model = process.env.OPENAI_VISION_MODEL || 'gpt-4.1-mini';
+  const result = await fetch('https://api.openai.com/v1/responses', { method:'POST', headers:{ Authorization:`Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type':'application/json' }, body:JSON.stringify({ model, input:[{ role:'user', content:[{ type:'input_text', text:prompt },{ type:'input_image', image_url:imageUrl }] }], text:{ format:{ type:'json_object' } } }) });
+  if (!result.ok) throw new Error(`OpenAI request failed (${result.status}).`);
+  const payload = await result.json();
+  try { return JSON.parse(payload.output_text || '{}'); } catch { return {}; }
+}
 
 export default async function handler(request, response) {
   if (request.method !== 'POST') return methodNotAllowed(response, 'POST');
@@ -8,15 +67,13 @@ export default async function handler(request, response) {
     const imageUrl = typeof request.body?.imageUrl === 'string' ? request.body.imageUrl : '';
     const categories = Array.isArray(request.body?.categories) ? request.body.categories.filter((category) => category && typeof category.id === 'string' && typeof category.name === 'string').slice(0, 100) : [];
     if (!imageUrl.startsWith('https://res.cloudinary.com/') || !categories.length) throw clientError('A signed Cloudinary image and categories are required.');
-    if (!process.env.OPENAI_API_KEY) return response.status(200).json({ configured:false, suggestion:null });
-    const model = process.env.OPENAI_VISION_MODEL || 'gpt-4.1-mini';
-    const prompt = `Look at this ladies footwear product photo. Return JSON only with keys name and categoryId. name must be a short sellable name; categoryId must be one of: ${JSON.stringify(categories)}. Do not infer price or size. If uncertain, return empty strings.`;
-    const result = await fetch('https://api.openai.com/v1/responses', { method:'POST', headers:{ Authorization:`Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type':'application/json' }, body:JSON.stringify({ model, input:[{ role:'user', content:[{ type:'input_text', text:prompt },{ type:'input_image', image_url:imageUrl }] }], text:{ format:{ type:'json_object' } } }) });
-    if (!result.ok) throw clientError('AI suggestion is temporarily unavailable.', 502);
-    const payload = await result.json(); let parsed = {};
-    try { parsed = JSON.parse(payload.output_text || '{}'); } catch { /* Leave uncertain suggestions empty. */ }
-    const categoryId = categories.some((category) => category.id === parsed.categoryId) ? parsed.categoryId : '';
-    const name = typeof parsed.name === 'string' ? parsed.name.trim().slice(0,160) : '';
-    return response.status(200).json({ configured:true, suggestion:{ name, categoryId } });
+    const prompt = `Look at this ladies footwear product photo. Return JSON only with keys name, categoryId, price, and size. name must be a short sellable name; categoryId must be one of: ${JSON.stringify(categories)}. price must be the visible price-tag amount as an integer in KSh, or null if it is not clearly shown. size must be a string from 30 through 45, or null if it is not clearly shown; if a range such as "37/38" is shown, use its first number ("37"). Do not guess any field; use empty strings for uncertain name/categoryId and null for uncertain price/size.`;
+    if (process.env.GEMINI_API_KEY) {
+      try { return response.status(200).json({ configured:true, provider:'GEMINI', suggestion:cleanBulkSuggestion(await geminiSuggestion({ imageUrl, prompt }), categories) }); } catch { /* Try the paid fallback after Gemini errors or exhausted rate-limit retries. */ }
+    }
+    if (process.env.OPENAI_API_KEY) {
+      try { return response.status(200).json({ configured:true, provider:'OPENAI', suggestion:cleanBulkSuggestion(await openAiSuggestion({ imageUrl, prompt }), categories) }); } catch { /* OCR remains available when OpenAI is unavailable. */ }
+    }
+    return response.status(200).json({ configured:false, provider:null, suggestion:null });
   } catch (error) { return sendError(response, error); }
 }

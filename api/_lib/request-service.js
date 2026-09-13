@@ -17,7 +17,7 @@ export function validateCustomerRequest(input, type) {
     return { orderDocumentId, cart: Array.isArray(input.cart) ? input.cart.slice(0, 20) : null, note };
   }
   if (!Array.isArray(input.items) || !input.items.length || input.items.length > 30) throw clientError('Provide one or more bulk-order items.');
-  const items = input.items.map((item) => ({ productId: id(item?.productId, 'product identifier'), size: String(item?.size || ''), quantity: item?.quantity })).map((item) => { if (!/^(35|36|37|38|39|40|41|42)$/.test(item.size) || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000) throw clientError('Bulk-order items are invalid.'); return item; });
+  const items = input.items.map((item) => ({ productId: id(item?.productId, 'product identifier'), size: String(item?.size || ''), quantity: item?.quantity })).map((item) => { if (!/^(30|31|32|33|34|35|36|37|38|39|40|41|42|43|44|45)$/.test(item.size) || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 1000) throw clientError('Bulk-order items are invalid.'); return item; });
   return { items, deliveryLocation: text(input.deliveryLocation, 300) || null, note };
 }
 

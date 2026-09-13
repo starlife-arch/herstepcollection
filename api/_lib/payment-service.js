@@ -3,6 +3,7 @@ import { assertOrderCanBePaid, assertPaymentTransition, assertVerifiedPaymentAmo
 import { clientError } from './http.js';
 import { createNotification } from './notification.js';
 import { deliverQueuedEmailInline, queueEmail, orderReceiptEmail } from './email-service.js';
+import { sendTelegramMessage } from './telegram.js';
 
 function timestamp(value) { return value?.toDate?.().toISOString() || null; }
 
@@ -71,5 +72,6 @@ export async function applyVerifiedCallback({ db, callback }) {
   });
   if (result.emailKey) await deliverQueuedEmailInline({ db, key: result.emailKey });
   delete result.emailKey;
+  if (!result.duplicate && result.payment.status === 'PAID') await sendTelegramMessage(`Payment confirmed for ${result.payment.orderId}: KSh ${result.payment.amount}.`);
   return result;
 }

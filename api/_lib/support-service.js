@@ -4,6 +4,7 @@ import { assertTicketTransition, ticketId, validateMessageCreate, validateTicket
 import { createNotification } from './notification.js';
 import { createAuditLog } from './audit.js';
 import { deliverQueuedEmailInline, queueEmail, emailHtml } from './email-service.js';
+import { sendTelegramMessage } from './telegram.js';
 
 async function getOwnedTicket(transaction, db, ticketDocumentId, actor) {
   const reference = db.collection('supportTickets').doc(ticketDocumentId); const snapshot = await transaction.get(reference);
@@ -35,6 +36,7 @@ export async function createSupportTicket({ db, customerId, input }) {
   });
   if (result.emailKey) await deliverQueuedEmailInline({ db, key: result.emailKey });
   delete result.emailKey;
+  await sendTelegramMessage(`New support ticket ${result.ticket.ticketId}: ${result.ticket.customerName || result.ticket.customerEmail || result.ticket.customerId} — ${result.ticket.subject}.`);
   return result;
 }
 

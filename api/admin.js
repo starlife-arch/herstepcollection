@@ -6,6 +6,7 @@ export default (request, response) => dispatchRoute(request, response, {
   'brevo-contacts': lazyRoute(() => import('./_lib/routes/admin-brevo-contacts.js')),
   broadcast: lazyRoute(() => import('./_lib/routes/admin-broadcast.js')),
   'bulk-drafts': lazyRoute(() => import('./_lib/routes/admin-bulk-drafts.js')),
+  'bulk-suggest': lazyRoute(() => import('./_lib/routes/admin-bulk-suggest.js')),
   hero: lazyRoute(() => import('./_lib/routes/admin-hero.js')),
   dashboard: lazyRoute(() => import('./_lib/routes/admin-dashboard.js')),
   data: lazyRoute(() => import('./_lib/routes/admin-data.js')),

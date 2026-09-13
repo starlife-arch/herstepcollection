@@ -13,8 +13,8 @@ test('OCR classification accepts only unambiguous catalogue-sized numbers and pr
 });
 
 test('bulk intake uses signed uploads, browser ZIP extraction, persisted admin drafts, and existing product POST validation', async () => {
-  const [ui, route, admin, config] = await Promise.all(['admin-bulk.js','api/_lib/routes/admin-bulk-drafts.js','api/admin.js','vercel.json'].map(async (file) => file.endsWith('.json') ? readFile(new URL(`../${file}`, import.meta.url), 'utf8') : readFile(new URL(`../${file}`, import.meta.url), 'utf8')));
-  assert.match(ui, /jszip/); assert.match(ui, /tesseract\.js/); assert.match(ui, /uploadImage\(file/); assert.match(ui, /\/api\/products/); assert.match(ui, /draggable/); assert.match(ui, /Needs price/); assert.match(ui, /Needs size/);
+  const [ui, route, admin, config, suggest] = await Promise.all(['admin-bulk.js','api/_lib/routes/admin-bulk-drafts.js','api/admin.js','vercel.json','api/_lib/routes/admin-bulk-suggest.js'].map(async (file) => file.endsWith('.json') ? readFile(new URL(`../${file}`, import.meta.url), 'utf8') : readFile(new URL(`../${file}`, import.meta.url), 'utf8')));
+  assert.match(ui, /originalFile/); assert.match(ui, /Tesseract\.recognize\(originalFile/); assert.match(ui, /bulk-suggest/); assert.match(ui, /AI suggested/); assert.match(ui, /error\.status !== 404/); assert.match(ui, /jszip/); assert.match(ui, /tesseract\.js/); assert.match(ui, /uploadImage\(originalFile/); assert.match(ui, /\/api\/products/); assert.match(ui, /draggable/); assert.match(ui, /Needs price/); assert.match(ui, /Needs size/);
   assert.match(route, /requireAdmin/); assert.match(route, /adminBulkProductDrafts/); assert.match(route, /Draft size must be between 30 and 45/); assert.match(ui, /'30','31','32','33','34','35','36','37','38','39','40','41','42','43','44','45'/);
-  assert.match(admin, /'bulk-drafts'/); assert.match(config, /\/api\/admin\/bulk-drafts/);
+  assert.match(admin, /'bulk-drafts'/); assert.match(admin, /'bulk-suggest'/); assert.match(suggest, /OPENAI_API_KEY/); assert.match(suggest, /input_image/); assert.match(config, /\/api\/admin\/bulk-drafts/);
 });

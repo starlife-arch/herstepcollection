@@ -23,7 +23,7 @@ export function orderTrackingResponse(order, history) {
     total: order.total,
     currency: order.currency,
     deliveryMethod: order.delivery?.deliveryMethod || null,
-    items: (order.items || []).map(({ name, size, quantity, lineTotal, image }) => ({ name, size, quantity, lineTotal, image })),
+    items: (order.items || []).map(({ productId, name, size, quantity, lineTotal, image, imageUrl }) => ({ productId, name, size, quantity, lineTotal, imageUrl: imageUrl || image || null })),
     history: history.map((entry) => ({ eventType: entry.eventType || 'ORDER_STATUS_CHANGED', previousStatus: entry.previousStatus || null, newStatus: entry.newStatus || null, paymentStatus: entry.paymentStatus || null, note: entry.note || null, source: entry.source || 'SYSTEM', createdAt: entry.createdAt?.toDate?.().toISOString() || null }))
   };
 }

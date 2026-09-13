@@ -5,6 +5,7 @@ import { applyPromoCode } from './promotion-service.js';
 import { enforceRateLimit } from './rate-limit.js';
 import { deliveryFee as resolveDeliveryFee, normalizeDelivery } from './delivery.js';
 import { deliverQueuedEmailInline, queueEmail, orderReceiptEmail } from './email-service.js';
+import { sendTelegramMessage } from './telegram.js';
 
 export function createOrderHandler({ db, requireAuthenticatedUser } = {}) { return async function handler(request, response) {
   if (request.method !== 'POST') return methodNotAllowed(response, 'POST');
@@ -33,7 +34,8 @@ export function createOrderHandler({ db, requireAuthenticatedUser } = {}) { retu
         const stock = inventoryIndex === -1 ? null : product.inventory[inventoryIndex];
         if (!stock || stock.quantity < item.quantity) throw clientError(`${product.name} in size ${item.size} no longer has enough stock.`, 409);
         const unitPrice = product.salePrice ?? product.price;
-        return { productId: snapshot.id, name: product.name, sku: product.sku, categoryId: product.categoryId || null, size: item.size, quantity: item.quantity, unitPrice, lineTotal: unitPrice * item.quantity, image: product.images?.[0]?.url || null, inventoryIndex, product, reference: productRefs[index] };
+        const imageUrl = product.images?.[0]?.url || null;
+        return { productId: snapshot.id, name: product.name, sku: product.sku, categoryId: product.categoryId || null, size: item.size, quantity: item.quantity, unitPrice, lineTotal: unitPrice * item.quantity, imageUrl, image: imageUrl, inventoryIndex, product, reference: productRefs[index] };
       });
       const subtotal = lines.reduce((sum, item) => sum + item.lineTotal, 0);
       const deliveryFee = delivery.deliveryMethod === 'DELIVERY' ? resolveDeliveryFee(settings, delivery.location) : 0;
@@ -59,6 +61,7 @@ export function createOrderHandler({ db, requireAuthenticatedUser } = {}) { retu
     });
     if (result.emailKey) await deliverQueuedEmailInline({ db, key: result.emailKey });
     delete result.emailKey;
+    await sendTelegramMessage(`New order ${result.orderId}: KSh ${result.total} · ${cart.reduce((count, item) => count + item.quantity, 0)} item(s).`);
     return response.status(201).json({ order: result });
   } catch (error) { return sendError(response, error); }
 }; }

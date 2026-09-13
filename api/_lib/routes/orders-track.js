@@ -12,6 +12,10 @@ export default async function handler(request, response) {
     const order = { ...orderSnapshot.data(), orderDocumentId };
     if (order.customerId !== user.uid) throw clientError('You are not allowed to view this order.', 403);
     const history = await adminDb.collection('orderStatusHistory').where('orderDocumentId', '==', orderDocumentId).orderBy('createdAt').get();
+    const productIds = [...new Set((order.items || []).filter((item) => !item.imageUrl && !item.image && item.productId).map((item) => item.productId))];
+    const products = await Promise.all(productIds.map(async (productId) => [productId, (await adminDb.collection('products').doc(productId).get()).data()?.images?.[0]?.url || null]));
+    const images = new Map(products);
+    order.items = (order.items || []).map((item) => ({ ...item, imageUrl: item.imageUrl || item.image || images.get(item.productId) || null }));
     return response.status(200).json({ order: orderTrackingResponse(order, history.docs.map((doc) => doc.data())) });
   } catch (error) { return sendError(response, error); }
 }

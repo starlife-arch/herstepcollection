@@ -1,6 +1,7 @@
 import { requireAdmin } from '../firebase-admin.js';
 import { cleanBulkSuggestion } from '../bulk-suggestion-validation.js';
 import { clientError, methodNotAllowed, sendError } from '../http.js';
+import { cleanBulkSuggestion } from '../bulk-suggestion-validation.js';
 
 const GEMINI_MIN_INTERVAL_MS = 4_100;
 const GEMINI_RATE_LIMIT_RETRIES = 3;

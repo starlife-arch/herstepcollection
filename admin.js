@@ -80,12 +80,33 @@ function productForm(product, categories, { duplicate = false } = {}) {
 }
 async function products() {
   const [{ products }, { categories }] = await Promise.all([api('/api/products'), api('/api/categories')]);
-  content.innerHTML = `<div class="admin-split"><section class="admin-panel"><div class="admin-panel-heading"><div><h2>Catalogue</h2><p>${products.length} products, including drafts and archived records.</p></div><button class="button button-secondary" id="new-product">Add product</button></div><div class="admin-product-list">${products.map((p) => `<article>${p.images?.[0]?.url ? `<img src="${escapeHtml(p.images[0].url)}" alt="">` : ''}<div><strong>${escapeHtml(p.name)}</strong><span>${escapeHtml(p.sku)} · ${money(p.salePrice ?? p.price)} · ${escapeHtml(p.status)}</span><small>${p.stockQuantity} pairs in stock</small></div><div><button class="text-button" data-edit-product="${escapeHtml(p.id)}" type="button">Edit</button><button class="text-button" data-duplicate-product="${escapeHtml(p.id)}" type="button">Duplicate</button></div></article>`).join('') || '<p>No products yet.</p>'}</div></section><div id="product-editor">${productForm(null, categories)}</div></div>`;
+  const selected = new Set();
+  const renderProducts = () => {
+    const selectedCount = selected.size;
+    content.innerHTML = `<div class="admin-split"><section class="admin-panel"><div class="admin-panel-heading"><div><h2>Catalogue</h2><p>${products.length} products, including drafts and archived records.</p></div><button class="button button-secondary" id="new-product">Add product</button></div><label class="check-label product-select-all"><input id="select-all-products" type="checkbox" ${products.length && selectedCount === products.length ? 'checked' : ''}> Select all on this page</label><div class="bulk-product-actions" ${selectedCount ? '' : 'hidden'}><strong>${selectedCount} selected</strong><button class="button button-secondary" data-bulk-flag="featured:true" type="button">Mark as Featured</button><button class="button button-secondary" data-bulk-flag="featured:false" type="button">Unmark Featured</button><button class="button button-secondary" data-bulk-flag="newArrival:true" type="button">Mark as New Arrival</button><button class="button button-secondary" data-bulk-flag="newArrival:false" type="button">Unmark New Arrival</button><p class="form-message" id="bulk-product-message"></p></div><div class="admin-product-list">${products.map((p) => `<article><label class="check-label"><input data-select-product="${escapeHtml(p.id)}" type="checkbox" ${selected.has(p.id) ? 'checked' : ''}><span class="sr-only">Select ${escapeHtml(p.name)}</span></label>${p.images?.[0]?.url ? `<img src="${escapeHtml(p.images[0].url)}" alt="">` : ''}<div><strong>${escapeHtml(p.name)}</strong><span>${escapeHtml(p.sku)} · ${money(p.salePrice ?? p.price)} · ${escapeHtml(p.status)}</span><small>${p.stockQuantity} pairs in stock · ${p.featured ? 'Featured' : 'Not featured'} · ${p.newArrival ? 'New arrival' : 'Standard'}</small></div><div><button class="text-button" data-edit-product="${escapeHtml(p.id)}" type="button">Edit</button><button class="text-button" data-duplicate-product="${escapeHtml(p.id)}" type="button">Duplicate</button></div></article>`).join('') || '<p>No products yet.</p>'}</div></section><div id="product-editor">${productForm(null, categories)}</div></div>`;
+    bindList();
+  };
+  const applyFlag = async (field, value) => {
+    const actionButtons = content.querySelectorAll('[data-bulk-flag]'); actionButtons.forEach((button) => { button.disabled = true; });
+    try {
+      for (const id of selected) {
+        const product = products.find((item) => item.id === id);
+        await api(`/api/products/${encodeURIComponent(id)}`, { method:'PATCH', body:JSON.stringify({ ...product, [field]:value, inventoryReason:'' }) });
+        product[field] = value;
+      }
+      selected.clear(); renderProducts();
+    } catch (error) { content.querySelector('#bulk-product-message').textContent = error.message; } finally { actionButtons.forEach((button) => { button.disabled = false; }); }
+  };
   const showProductForm = (product, options) => { content.querySelector('#product-editor').innerHTML = productForm(product, categories, options); bindProductForm(); };
-  content.querySelector('#new-product').addEventListener('click', () => showProductForm(null));
-  content.querySelectorAll('[data-edit-product]').forEach((button) => button.addEventListener('click', () => showProductForm(products.find((product) => product.id === button.dataset.editProduct))));
-  content.querySelectorAll('[data-duplicate-product]').forEach((button) => button.addEventListener('click', () => showProductForm(products.find((product) => product.id === button.dataset.duplicateProduct), { duplicate:true })));
-  bindProductForm();
+  const bindList = () => {
+    content.querySelector('#new-product').addEventListener('click', () => showProductForm(null));
+    content.querySelector('#select-all-products')?.addEventListener('change', (event) => { if (event.target.checked) products.forEach((product) => selected.add(product.id)); else selected.clear(); renderProducts(); });
+    content.querySelectorAll('[data-select-product]').forEach((input) => input.addEventListener('change', () => { if (input.checked) selected.add(input.dataset.selectProduct); else selected.delete(input.dataset.selectProduct); renderProducts(); }));
+    content.querySelectorAll('[data-bulk-flag]').forEach((button) => button.addEventListener('click', () => { const [field, rawValue] = button.dataset.bulkFlag.split(':'); applyFlag(field, rawValue === 'true'); }));
+    content.querySelectorAll('[data-edit-product]').forEach((button) => button.addEventListener('click', () => showProductForm(products.find((product) => product.id === button.dataset.editProduct))));
+    content.querySelectorAll('[data-duplicate-product]').forEach((button) => button.addEventListener('click', () => showProductForm(products.find((product) => product.id === button.dataset.duplicateProduct), { duplicate:true })));
+  };
+  renderProducts();
 }
 function bindProductForm() { const form = content.querySelector('#product-form'); if (!form) return; form.querySelector('#cancel-product')?.addEventListener('click', products); form.addEventListener('submit', submitProduct); }
 async function uploadMedia(file, resourceType, alt = '', purpose = 'products') {

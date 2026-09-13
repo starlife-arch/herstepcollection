@@ -35,3 +35,22 @@ test('bulk intake can retry an existing draft suggestion and defaults a publish 
   assert.match(ui, /id="bulk-new-arrival" type="checkbox" checked/);
   assert.match(ui, /newArrival:content\.querySelector\('#bulk-new-arrival'\)\.checked/);
 });
+
+test('vision suggestions prefer rate-limited Gemini, then reuse OpenAI before OCR fallback', async () => {
+  const [ui, suggest, drafts] = await Promise.all(['admin-bulk.js', 'api/_lib/routes/admin-bulk-suggest.js', 'api/_lib/routes/admin-bulk-drafts.js'].map((file) => readFile(new URL(`../${file}`, import.meta.url), 'utf8')));
+  assert.match(suggest, /GEMINI_API_KEY/);
+  assert.match(suggest, /OPENAI_API_KEY/);
+  assert.match(suggest, /inlineData:\{ mimeType, data:imageBytes \}/);
+  assert.match(suggest, /generationConfig: \{ responseMimeType:'application\/json' \}/);
+  assert.match(suggest, /GEMINI_MIN_INTERVAL_MS = 4_100/);
+  assert.match(suggest, /GEMINI_RATE_LIMIT_RETRIES = 3/);
+  assert.match(suggest, /result\.status !== 429/);
+  assert.match(suggest, /provider:'GEMINI'/);
+  assert.match(suggest, /provider:'OPENAI'/);
+  assert.match(suggest, /configured:false, provider:null, suggestion:null/);
+  assert.match(ui, /Gemini suggested/);
+  assert.match(ui, /OpenAI suggested/);
+  assert.match(ui, /suggestionProvider:provider/);
+  assert.match(ui, /suggestionProvider:'OCR'/);
+  assert.match(drafts, /suggestionProvider/);
+});

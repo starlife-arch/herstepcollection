@@ -26,3 +26,12 @@ test('AI vision suggestions reject invalid price and size values before reaching
   assert.deepEqual(cleanBulkSuggestion({ name: 'Bad output', categoryId: 'not-a-category', price: -1, size: '46' }, categories), { name: 'Bad output', categoryId: '', price: null, size: null });
   assert.deepEqual(cleanBulkSuggestion({ price: 1500.5, size: '37/38' }, categories), { name: '', categoryId: '', price: null, size: null });
 });
+
+test('bulk intake can retry an existing draft suggestion and defaults a publish batch to new arrivals', async () => {
+  const ui = await readFile(new URL('../admin-bulk.js', import.meta.url), 'utf8');
+  assert.match(ui, /Retry AI suggestion/);
+  assert.match(ui, /const retrySuggestion/);
+  assert.match(ui, /draft\.images\?\.\[0\]\?\.url/);
+  assert.match(ui, /id="bulk-new-arrival" type="checkbox" checked/);
+  assert.match(ui, /newArrival:content\.querySelector\('#bulk-new-arrival'\)\.checked/);
+});

@@ -22,7 +22,7 @@ export function validateCart(cart) {
   return cart.map((item) => {
     const productId = typeof item?.productId === 'string' ? item.productId : '';
     const size = String(item?.size ?? ''); const quantity = item?.quantity;
-    if (!productId || !/^(35|36|37|38|39|40|41|42)$/.test(size) || !Number.isInteger(quantity) || quantity < 1 || quantity > MAX_LINE_QUANTITY) throw clientError('Your cart contains an invalid item.');
+    if (!productId || !/^(30|31|32|33|34|35|36|37|38|39|40|41|42|43|44|45)$/.test(size) || !Number.isInteger(quantity) || quantity < 1 || quantity > MAX_LINE_QUANTITY) throw clientError('Your cart contains an invalid item.');
     const key = `${productId}:${size}`;
     if (seen.has(key)) throw clientError('Your cart contains duplicate items.');
     seen.add(key); totalQuantity += quantity;

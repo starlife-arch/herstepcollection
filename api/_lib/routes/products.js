@@ -14,7 +14,7 @@ export default async function handler(request, response) {
       const hasBearerToken = /^Bearer\s+/i.test(request.headers?.authorization || '');
       if (hasBearerToken) {
         await requireAdmin(request);
-        const snapshot = await adminDb.collection('products').orderBy('createdAt', 'desc').limit(100).get();
+        const snapshot = await adminDb.collection('products').orderBy('createdAt', 'desc').get();
         return response.status(200).json({ products: snapshot.docs.map((doc) => productResponse(doc.id, doc.data())), nextPage: null });
       }
       // Some products published before `status` became the canonical field only

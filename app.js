@@ -245,7 +245,9 @@ async function loadHero() {
       dots.querySelectorAll('button').forEach((dot, dotIndex) => { const active = dotIndex === index; dot.classList.toggle('is-active', active); dot.setAttribute('aria-current', String(active)); });
       window.lucide?.createIcons();
     };
-    const restart = () => { clearInterval(timer); timer = setInterval(() => show(index + 1), 7000); };
+    const controls = section.querySelector('.hero-carousel-controls');
+    const restart = () => { clearInterval(timer); if (hero.slides.length > 1) timer = setInterval(() => show(index + 1), 5500); };
+    if (hero.slides.length === 1) controls.hidden = true;
     dots.replaceChildren(...hero.slides.map((slide, slideIndex) => { const dot = document.createElement('button'); dot.type = 'button'; dot.className = 'hero-carousel-dot'; dot.setAttribute('aria-label', `Show slide ${slideIndex + 1}: ${slide.title}`); dot.addEventListener('click', () => { show(slideIndex); restart(); }); return dot; }));
     section.querySelector('#hero-previous').addEventListener('click', () => { show(index - 1); restart(); });
     section.querySelector('#hero-next').addEventListener('click', () => { show(index + 1); restart(); });

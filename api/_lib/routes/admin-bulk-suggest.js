@@ -45,7 +45,10 @@ async function geminiSuggestion({ imageUrl, prompt }) {
       const text = payload.candidates?.[0]?.content?.parts?.find((part) => typeof part.text === 'string')?.text || '{}';
       try { return JSON.parse(text); } catch { return {}; }
     }
-    if (result.status !== 429 || attempt === GEMINI_RATE_LIMIT_RETRIES) throw new Error(`Gemini request failed (${result.status}).`);
+    if (result.status !== 429 || attempt === GEMINI_RATE_LIMIT_RETRIES) {
+      const bodyText = await result.text().catch(() => '');
+      throw new Error(`Gemini request failed (${result.status}): ${bodyText}`);
+    }
     const retryAfter = Number(result.headers.get('retry-after'));
     await wait(Number.isFinite(retryAfter) ? retryAfter * 1_000 : 1_000 * 2 ** attempt);
   }

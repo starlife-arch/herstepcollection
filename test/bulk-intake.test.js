@@ -46,6 +46,8 @@ test('vision suggestions prefer rate-limited Gemini, then reuse OpenAI before OC
   assert.match(suggest, /GEMINI_MIN_INTERVAL_MS = 4_100/);
   assert.match(suggest, /GEMINI_RATE_LIMIT_RETRIES = 3/);
   assert.match(suggest, /result\.status !== 429/);
+  assert.match(suggest, /const bodyText = await result\.text\(\)\.catch\(\(\) => ''\)/);
+  assert.match(suggest, /Gemini request failed \(\$\{result\.status\}\): \$\{bodyText\}/);
   assert.match(suggest, /provider:'GEMINI'/);
   assert.match(suggest, /provider:'OPENAI'/);
   assert.match(suggest, /console\.error\('Gemini suggestion failed:', error\.message\)/);

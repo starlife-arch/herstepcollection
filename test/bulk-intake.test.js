@@ -39,6 +39,7 @@ test('bulk intake can retry an existing draft suggestion and defaults a publish 
 test('vision suggestions prefer rate-limited Gemini, then reuse OpenAI before OCR fallback', async () => {
   const [ui, suggest, drafts] = await Promise.all(['admin-bulk.js', 'api/_lib/routes/admin-bulk-suggest.js', 'api/_lib/routes/admin-bulk-drafts.js'].map((file) => readFile(new URL(`../${file}`, import.meta.url), 'utf8')));
   assert.match(suggest, /GEMINI_API_KEY/);
+  assert.match(suggest, /GEMINI_VISION_MODEL \|\| 'gemini-2\.5-flash-lite'/);
   assert.match(suggest, /OPENAI_API_KEY/);
   assert.match(suggest, /inlineData:\{ mimeType, data:imageBytes \}/);
   assert.match(suggest, /generationConfig: \{ responseMimeType:'application\/json' \}/);

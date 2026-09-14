@@ -27,7 +27,7 @@ async function geminiSuggestion({ imageUrl, prompt }) {
   if (!imageResponse.ok) throw new Error('The uploaded image is unavailable to Gemini.');
   const imageBytes = Buffer.from(await imageResponse.arrayBuffer()).toString('base64');
   const mimeType = imageMimeType(imageResponse.headers.get('content-type'), imageUrl);
-  const model = process.env.GEMINI_VISION_MODEL || 'gemini-2.0-flash';
+  const model = process.env.GEMINI_VISION_MODEL || 'gemini-2.5-flash-lite';
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`;
   const request = () => fetch(endpoint, {
     method: 'POST',

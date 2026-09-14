@@ -69,11 +69,11 @@ export default async function handler(request, response) {
     if (!imageUrl.startsWith('https://res.cloudinary.com/') || !categories.length) throw clientError('A signed Cloudinary image and categories are required.');
     const prompt = `Look at this ladies footwear product photo. Return JSON only with keys name, categoryId, price, and size. name must be a short sellable name; categoryId must be one of: ${JSON.stringify(categories)}. price must be the visible price-tag amount as an integer in KSh, or null if it is not clearly shown. size must be a string from 30 through 45, or null if it is not clearly shown; if a range such as "37/38" is shown, use its first number ("37"). Do not guess any field; use empty strings for uncertain name/categoryId and null for uncertain price/size.`;
     if (process.env.GEMINI_API_KEY) {
-      try { return response.status(200).json({ configured:true, provider:'GEMINI', suggestion:cleanBulkSuggestion(await geminiSuggestion({ imageUrl, prompt }), categories) }); } catch { /* Try the paid fallback after Gemini errors or exhausted rate-limit retries. */ }
+      try { return response.status(200).json({ configured:true, provider:'GEMINI', suggestion:cleanBulkSuggestion(await geminiSuggestion({ imageUrl, prompt }), categories) }); } catch (error) { console.error('Gemini suggestion failed:', error.message); /* Try the paid fallback after Gemini errors or exhausted rate-limit retries. */ }
     }
     if (process.env.OPENAI_API_KEY) {
-      try { return response.status(200).json({ configured:true, provider:'OPENAI', suggestion:cleanBulkSuggestion(await openAiSuggestion({ imageUrl, prompt }), categories) }); } catch { /* OCR remains available when OpenAI is unavailable. */ }
+      try { return response.status(200).json({ configured:true, provider:'OPENAI', suggestion:cleanBulkSuggestion(await openAiSuggestion({ imageUrl, prompt }), categories) }); } catch (error) { console.error('OpenAI suggestion failed:', error.message); /* OCR remains available when OpenAI is unavailable. */ }
     }
-    return response.status(200).json({ configured:false, provider:null, suggestion:null });
+    return response.status(200).json({ configured:Boolean(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY), provider:null, suggestion:null });
   } catch (error) { return sendError(response, error); }
 }

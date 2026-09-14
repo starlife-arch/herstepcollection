@@ -47,10 +47,13 @@ test('vision suggestions prefer rate-limited Gemini, then reuse OpenAI before OC
   assert.match(suggest, /result\.status !== 429/);
   assert.match(suggest, /provider:'GEMINI'/);
   assert.match(suggest, /provider:'OPENAI'/);
-  assert.match(suggest, /configured:false, provider:null, suggestion:null/);
+  assert.match(suggest, /console\.error\('Gemini suggestion failed:', error\.message\)/);
+  assert.match(suggest, /console\.error\('OpenAI suggestion failed:', error\.message\)/);
+  assert.match(suggest, /configured:Boolean\(process\.env\.GEMINI_API_KEY \|\| process\.env\.OPENAI_API_KEY\), provider:null, suggestion:null/);
   assert.match(ui, /Gemini suggested/);
   assert.match(ui, /OpenAI suggested/);
   assert.match(ui, /suggestionProvider:provider/);
   assert.match(ui, /suggestionProvider:'OCR'/);
+  assert.match(ui, /AI suggestion failed — using OCR instead\./);
   assert.match(drafts, /suggestionProvider/);
 });

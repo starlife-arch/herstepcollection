@@ -1,7 +1,6 @@
 import { requireAdmin } from '../firebase-admin.js';
 import { cleanBulkSuggestion } from '../bulk-suggestion-validation.js';
 import { clientError, methodNotAllowed, sendError } from '../http.js';
-import { cleanBulkSuggestion } from '../bulk-suggestion-validation.js';
 
 const GEMINI_MIN_INTERVAL_MS = 4_100;
 const GEMINI_RATE_LIMIT_RETRIES = 3;
@@ -28,7 +27,7 @@ async function geminiSuggestion({ imageUrl, prompt }) {
   if (!imageResponse.ok) throw new Error('The uploaded image is unavailable to Gemini.');
   const imageBytes = Buffer.from(await imageResponse.arrayBuffer()).toString('base64');
   const mimeType = imageMimeType(imageResponse.headers.get('content-type'), imageUrl);
-  const model = process.env.GEMINI_VISION_MODEL || 'gemini-2.0-flash';
+  const model = process.env.GEMINI_VISION_MODEL || 'gemini-2.5-flash-lite';
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`;
   const request = () => fetch(endpoint, {
     method: 'POST',
@@ -46,7 +45,10 @@ async function geminiSuggestion({ imageUrl, prompt }) {
       const text = payload.candidates?.[0]?.content?.parts?.find((part) => typeof part.text === 'string')?.text || '{}';
       try { return JSON.parse(text); } catch { return {}; }
     }
-    if (result.status !== 429 || attempt === GEMINI_RATE_LIMIT_RETRIES) throw new Error(`Gemini request failed (${result.status}).`);
+    if (result.status !== 429 || attempt === GEMINI_RATE_LIMIT_RETRIES) {
+      const bodyText = await result.text().catch(() => '');
+      throw new Error(`Gemini request failed (${result.status}): ${bodyText}`);
+    }
     const retryAfter = Number(result.headers.get('retry-after'));
     await wait(Number.isFinite(retryAfter) ? retryAfter * 1_000 : 1_000 * 2 ** attempt);
   }
@@ -70,11 +72,11 @@ export default async function handler(request, response) {
     if (!imageUrl.startsWith('https://res.cloudinary.com/') || !categories.length) throw clientError('A signed Cloudinary image and categories are required.');
     const prompt = `Look at this ladies footwear product photo. Return JSON only with keys name, categoryId, price, and size. name must be a short sellable name; categoryId must be one of: ${JSON.stringify(categories)}. price must be the visible price-tag amount as an integer in KSh, or null if it is not clearly shown. size must be a string from 30 through 45, or null if it is not clearly shown; if a range such as "37/38" is shown, use its first number ("37"). Do not guess any field; use empty strings for uncertain name/categoryId and null for uncertain price/size.`;
     if (process.env.GEMINI_API_KEY) {
-      try { return response.status(200).json({ configured:true, provider:'GEMINI', suggestion:cleanBulkSuggestion(await geminiSuggestion({ imageUrl, prompt }), categories) }); } catch { /* Try the paid fallback after Gemini errors or exhausted rate-limit retries. */ }
+      try { return response.status(200).json({ configured:true, provider:'GEMINI', suggestion:cleanBulkSuggestion(await geminiSuggestion({ imageUrl, prompt }), categories) }); } catch (error) { console.error('Gemini suggestion failed:', error.message); /* Try the paid fallback after Gemini errors or exhausted rate-limit retries. */ }
     }
     if (process.env.OPENAI_API_KEY) {
-      try { return response.status(200).json({ configured:true, provider:'OPENAI', suggestion:cleanBulkSuggestion(await openAiSuggestion({ imageUrl, prompt }), categories) }); } catch { /* OCR remains available when OpenAI is unavailable. */ }
+      try { return response.status(200).json({ configured:true, provider:'OPENAI', suggestion:cleanBulkSuggestion(await openAiSuggestion({ imageUrl, prompt }), categories) }); } catch (error) { console.error('OpenAI suggestion failed:', error.message); /* OCR remains available when OpenAI is unavailable. */ }
     }
-    return response.status(200).json({ configured:false, provider:null, suggestion:null });
+    return response.status(200).json({ configured:Boolean(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY), provider:null, suggestion:null });
   } catch (error) { return sendError(response, error); }
 }

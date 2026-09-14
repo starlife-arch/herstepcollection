@@ -36,27 +36,28 @@ test('bulk intake can retry an existing draft suggestion and defaults a publish 
   assert.match(ui, /newArrival:content\.querySelector\('#bulk-new-arrival'\)\.checked/);
 });
 
-test('vision suggestions prefer rate-limited Gemini, then reuse OpenAI before OCR fallback', async () => {
+test('vision suggestions prefer rate-limited Groq, then reuse OpenAI before OCR fallback', async () => {
   const [ui, suggest, drafts] = await Promise.all(['admin-bulk.js', 'api/_lib/routes/admin-bulk-suggest.js', 'api/_lib/routes/admin-bulk-drafts.js'].map((file) => readFile(new URL(`../${file}`, import.meta.url), 'utf8')));
-  assert.match(suggest, /GEMINI_API_KEY/);
-  assert.match(suggest, /GEMINI_VISION_MODEL \|\| 'gemini-2\.5-flash-lite'/);
+  assert.match(suggest, /GROQ_API_KEY/);
+  assert.match(suggest, /GROQ_VISION_MODEL \|\| 'meta-llama\/llama-4-scout-17b-16e-instruct'/);
   assert.match(suggest, /OPENAI_API_KEY/);
-  assert.match(suggest, /inlineData:\{ mimeType, data:imageBytes \}/);
-  assert.match(suggest, /generationConfig: \{ responseMimeType:'application\/json' \}/);
-  assert.match(suggest, /GEMINI_MIN_INTERVAL_MS = 4_100/);
-  assert.match(suggest, /GEMINI_RATE_LIMIT_RETRIES = 3/);
+  assert.match(suggest, /https:\/\/api\.groq\.com\/openai\/v1\/chat\/completions/);
+  assert.match(suggest, /image_url:\{ url:imageUrl \}/);
+  assert.match(suggest, /response_format: \{ type:'json_object' \}/);
+  assert.match(suggest, /GROQ_MIN_INTERVAL_MS = 2_100/);
+  assert.match(suggest, /GROQ_RATE_LIMIT_RETRIES = 3/);
   assert.match(suggest, /result\.status !== 429/);
   assert.match(suggest, /const bodyText = await result\.text\(\)\.catch\(\(\) => ''\)/);
-  assert.match(suggest, /Gemini request failed \(\$\{result\.status\}\): \$\{bodyText\}/);
-  assert.match(suggest, /provider:'GEMINI'/);
+  assert.match(suggest, /Groq request failed \(\$\{result\.status\}\): \$\{bodyText\}/);
+  assert.match(suggest, /provider:'GROQ'/);
   assert.match(suggest, /provider:'OPENAI'/);
-  assert.match(suggest, /console\.error\('Gemini suggestion failed:', error\.message\)/);
+  assert.match(suggest, /console\.error\('Groq suggestion failed:', error\.message\)/);
   assert.match(suggest, /console\.error\('OpenAI suggestion failed:', error\.message\)/);
-  assert.match(suggest, /configured:Boolean\(process\.env\.GEMINI_API_KEY \|\| process\.env\.OPENAI_API_KEY\), provider:null, suggestion:null/);
-  assert.match(ui, /Gemini suggested/);
+  assert.match(suggest, /configured:Boolean\(process\.env\.GROQ_API_KEY \|\| process\.env\.OPENAI_API_KEY\), provider:null, suggestion:null/);
+  assert.match(ui, /Groq suggested/);
   assert.match(ui, /OpenAI suggested/);
   assert.match(ui, /suggestionProvider:provider/);
   assert.match(ui, /suggestionProvider:'OCR'/);
   assert.match(ui, /AI suggestion failed — using OCR instead\./);
-  assert.match(drafts, /suggestionProvider/);
+  assert.match(drafts, /'GROQ'/);
 });

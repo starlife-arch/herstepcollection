@@ -29,7 +29,9 @@ export function validatePromoCodeInput(value) { return value == null || value ==
 
 export function calculatePromoDiscount(promo, lines, subtotal, now = new Date()) {
   const startsAt = promo.startsAt?.toDate?.() || promo.startsAt; const endsAt = promo.endsAt?.toDate?.() || promo.endsAt;
-  if (!promo.active || !startsAt || !endsAt || now < startsAt || now > endsAt) throw clientError('This promo code is not currently valid.', 409);
+  if (!promo.active) throw clientError('This promo code is inactive.', 409);
+  if (!startsAt || now < startsAt) throw clientError('This promo code is not active yet.', 409);
+  if (!endsAt || now > endsAt) throw clientError('This promo code has expired.', 409);
   if (subtotal < promo.minimumOrderValue) throw clientError('This promo code requires a higher order value.', 409);
   const eligible = lines.filter((line) => !promo.productIds?.length && !promo.categoryIds?.length || promo.productIds?.includes(line.productId) || promo.categoryIds?.includes(line.categoryId));
   const eligibleSubtotal = eligible.reduce((sum, line) => sum + line.lineTotal, 0);

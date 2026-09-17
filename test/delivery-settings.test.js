@@ -15,6 +15,8 @@ test('admin promo toggle uses only supported patch fields and checkout hides ins
   const [admin, cart] = await Promise.all([readFile(new URL('../admin.js', import.meta.url), 'utf8'), readFile(new URL('../cart.js', import.meta.url), 'utf8')]);
   assert.match(admin, /code:promo\.code, name:promo\.name, description:promo\.description/);
   assert.doesNotMatch(admin, /\{ \.\.\.promo, active:/);
+  assert.match(admin, /startsAt:new Date\(form\.startsAt\.value\)\.toISOString\(\), endsAt:new Date\(form\.endsAt\.value\)\.toISOString\(\)/);
+  assert.match(admin, /startsAt:promo\.startsAt, endsAt:promo\.endsAt/);
   assert.match(admin, /data-view="delivery"/);
   assert.match(admin, /const productNames = new Map/);
   assert.match(admin, /escapeHtml\(productName\(item\.productId\)\)/);

@@ -1,5 +1,6 @@
 import { requireAdmin } from '../firebase-admin.js';
 import { cleanBulkSuggestion } from '../bulk-suggestion-validation.js';
+import { wolfXapisSuggestion } from '../wolfxapis-vision.js';
 import { clientError, methodNotAllowed, sendError } from '../http.js';
 
 const GROQ_MIN_INTERVAL_MS = 2_100;
@@ -67,6 +68,9 @@ export default async function handler(request, response) {
     if (process.env.OPENAI_API_KEY) {
       try { return response.status(200).json({ configured:true, provider:'OPENAI', suggestion:cleanBulkSuggestion(await openAiSuggestion({ imageUrl, prompt }), categories) }); } catch (error) { console.error('OpenAI suggestion failed:', error.message); /* OCR remains available when OpenAI is unavailable. */ }
     }
-    return response.status(200).json({ configured:Boolean(process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY), provider:null, suggestion:null });
+    if (process.env.WOLFXAPIS_KEY) {
+      try { return response.status(200).json({ configured:true, provider:'WOLFXAPIS', suggestion:cleanBulkSuggestion(await wolfXapisSuggestion({ imageUrl, prompt }), categories) }); } catch (error) { console.error('wolfXapis suggestion failed:', error.message); /* This optional service must never prevent OCR fallback. */ }
+    }
+    return response.status(200).json({ configured:Boolean(process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY || process.env.WOLFXAPIS_KEY), provider:null, suggestion:null });
   } catch (error) { return sendError(response, error); }
 }

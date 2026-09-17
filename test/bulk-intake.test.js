@@ -36,11 +36,14 @@ test('bulk intake can retry an existing draft suggestion and defaults a publish 
   assert.match(ui, /newArrival:content\.querySelector\('#bulk-new-arrival'\)\.checked/);
 });
 
-test('vision suggestions prefer rate-limited Groq, then reuse OpenAI before OCR fallback', async () => {
-  const [ui, suggest, drafts] = await Promise.all(['admin-bulk.js', 'api/_lib/routes/admin-bulk-suggest.js', 'api/_lib/routes/admin-bulk-drafts.js'].map((file) => readFile(new URL(`../${file}`, import.meta.url), 'utf8')));
+test('vision suggestions prefer Groq, then OpenAI, then optional wolfXapis before OCR fallback', async () => {
+  const [ui, suggest, wolfXapis, drafts] = await Promise.all(['admin-bulk.js', 'api/_lib/routes/admin-bulk-suggest.js', 'api/_lib/wolfxapis-vision.js', 'api/_lib/routes/admin-bulk-drafts.js'].map((file) => readFile(new URL(`../${file}`, import.meta.url), 'utf8')));
   assert.match(suggest, /GROQ_API_KEY/);
   assert.match(suggest, /GROQ_VISION_MODEL \|\| 'meta-llama\/llama-4-scout-17b-16e-instruct'/);
   assert.match(suggest, /OPENAI_API_KEY/);
+  assert.match(suggest, /WOLFXAPIS_KEY/);
+  assert.match(wolfXapis, /https:\/\/apis\.xwolf\.space\/api\/nvidia\/vision/);
+  assert.match(wolfXapis, /'x-api-key': process\.env\.WOLFXAPIS_KEY/);
   assert.match(suggest, /https:\/\/api\.groq\.com\/openai\/v1\/chat\/completions/);
   assert.match(suggest, /image_url:\{ url:imageUrl \}/);
   assert.match(suggest, /response_format: \{ type:'json_object' \}/);
@@ -51,13 +54,54 @@ test('vision suggestions prefer rate-limited Groq, then reuse OpenAI before OCR 
   assert.match(suggest, /Groq request failed \(\$\{result\.status\}\): \$\{bodyText\}/);
   assert.match(suggest, /provider:'GROQ'/);
   assert.match(suggest, /provider:'OPENAI'/);
+  assert.match(suggest, /provider:'WOLFXAPIS'/);
+  assert.ok(suggest.indexOf('process.env.GROQ_API_KEY') < suggest.indexOf('process.env.OPENAI_API_KEY'));
+  assert.ok(suggest.indexOf('process.env.OPENAI_API_KEY') < suggest.indexOf('process.env.WOLFXAPIS_KEY'));
   assert.match(suggest, /console\.error\('Groq suggestion failed:', error\.message\)/);
   assert.match(suggest, /console\.error\('OpenAI suggestion failed:', error\.message\)/);
-  assert.match(suggest, /configured:Boolean\(process\.env\.GROQ_API_KEY \|\| process\.env\.OPENAI_API_KEY\), provider:null, suggestion:null/);
+  assert.match(suggest, /console\.error\('wolfXapis suggestion failed:', error\.message\)/);
+  assert.match(suggest, /configured:Boolean\(process\.env\.GROQ_API_KEY \|\| process\.env\.OPENAI_API_KEY \|\| process\.env\.WOLFXAPIS_KEY\), provider:null, suggestion:null/);
   assert.match(ui, /Groq suggested/);
   assert.match(ui, /OpenAI suggested/);
+  assert.match(ui, /wolfXapis suggested/);
   assert.match(ui, /suggestionProvider:provider/);
   assert.match(ui, /suggestionProvider:'OCR'/);
   assert.match(ui, /AI suggestion failed — using OCR instead\./);
   assert.match(drafts, /'GROQ'/);
+  assert.match(drafts, /'WOLFXAPIS'/);
+});
+
+test('wolfXapis text responses extract only a complete JSON object', async () => {
+  const { parseWolfXapisSuggestion } = await import('../api/_lib/wolfxapis-vision.js');
+  assert.deepEqual(
+    parseWolfXapisSuggestion('Here is the result:\n```json\n{"name":"Gold heel","categoryId":"heels","price":1500,"size":"37"}\n```'),
+    { name: 'Gold heel', categoryId: 'heels', price: 1500, size: '37' }
+  );
+  assert.deepEqual(parseWolfXapisSuggestion('{"name":"A {brace}"} trailing prose'), { name: 'A {brace}' });
+  assert.throws(() => parseWolfXapisSuggestion('not JSON'), /did not include JSON/);
+  assert.throws(() => parseWolfXapisSuggestion('{"name":'), /incomplete JSON/);
+});
+
+test('wolfXapis sends the configured key and preserves the full failure body', async () => {
+  const { wolfXapisSuggestion } = await import('../api/_lib/wolfxapis-vision.js');
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.WOLFXAPIS_KEY;
+  process.env.WOLFXAPIS_KEY = 'wxa_f_test';
+  try {
+    let request;
+    globalThis.fetch = async (url, options) => {
+      request = { url, options };
+      return { ok: true, text: async () => 'Result: {"name":"Black flat"}' };
+    };
+    assert.deepEqual(await wolfXapisSuggestion({ imageUrl: 'https://res.cloudinary.com/demo/image/upload/shoe.jpg', prompt: 'Return JSON.' }), { name: 'Black flat' });
+    assert.match(request.url, /^https:\/\/apis\.xwolf\.space\/api\/nvidia\/vision\?/);
+    assert.equal(new URL(request.url).searchParams.get('imageUrl'), 'https://res.cloudinary.com/demo/image/upload/shoe.jpg');
+    assert.equal(request.options.headers['x-api-key'], 'wxa_f_test');
+    globalThis.fetch = async () => ({ ok: false, status: 503, text: async () => 'Endpoint is temporarily disabled by admin' });
+    await assert.rejects(() => wolfXapisSuggestion({ imageUrl: 'https://res.cloudinary.com/demo/image/upload/shoe.jpg', prompt: 'Return JSON.' }), /503\): Endpoint is temporarily disabled by admin/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.WOLFXAPIS_KEY;
+    else process.env.WOLFXAPIS_KEY = originalKey;
+  }
 });
